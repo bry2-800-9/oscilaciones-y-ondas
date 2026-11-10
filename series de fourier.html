@@ -1,0 +1,2408 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador de Series de Fourier y Osciloscopio Digital &mdash; ESIME Zacatenco</title>
+
+  <!-- =================================================================== -->
+  <!-- SECTOR 1: ESTILOS Y VARIABLES DE INSTRUMENTACIÓN (CSS)              -->
+  <!-- =================================================================== -->
+  <style>
+    :root {
+      --bg-base: #04070d;
+      --bg-panel: #0a0f1a;
+      --bg-card: #0f1726;
+      --bg-button: #131c2e;
+      --bg-button-hover: #19253d;
+      --border-subtle: #192438;
+      --border-highlight: #283a5a;
+      --ch1-color: #00ff88;
+      --ch2-color: #00f2fe;
+      --ch3-color: #ff0077;
+      --ch4-color: #ffb300;
+      --text-main: #f0f4f8;
+      --text-dim: #73849c;
+      --text-label: #9db0c6;
+      --font-mono: 'SF Mono', 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+      --font-math: 'Cambria Math', 'STIX Two Math', 'Cambria', 'Times New Roman', serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-sans); user-select: none; }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 12px;
+      min-height: 100vh;
+      line-height: 1.35;
+    }
+
+    header {
+      width: 100%;
+      max-width: 1260px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--bg-panel);
+      padding: 10px 18px;
+      border-radius: 8px;
+      border: 1px solid var(--border-subtle);
+    }
+
+    .brand-title { font-size: 1.15rem; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+    .brand-title span { color: var(--ch2-color); }
+    .brand-subtitle { font-size: 0.72rem; color: var(--text-dim); font-family: var(--font-mono); }
+    .header-indicators { display: flex; gap: 10px; align-items: center; }
+
+    .badge-status {
+      font-family: var(--font-math);
+      font-size: 0.86rem;
+      padding: 4px 10px;
+      border-radius: 4px;
+      background: rgba(0, 242, 254, 0.08);
+      border: 1px solid rgba(0, 242, 254, 0.3);
+      color: var(--ch2-color);
+    }
+
+    .main-workspace {
+      display: grid;
+      grid-template-columns: 1fr 370px;
+      gap: 12px;
+      width: 100%;
+      max-width: 1260px;
+    }
+
+    @media (max-width: 980px) { .main-workspace { grid-template-columns: 1fr; } }
+
+    .screens-column { display: flex; flex-direction: column; gap: 9px; }
+
+    .crt-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 7px 10px 9px 10px;
+      position: relative;
+    }
+
+    .crt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 5px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .crt-title { display: flex; align-items: center; gap: 8px; }
+    .crt-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    .ch1-dot { background: var(--ch1-color); box-shadow: 0 0 6px var(--ch1-color); }
+    .ch2-dot { background: var(--ch2-color); box-shadow: 0 0 6px var(--ch2-color); }
+    .ch3-dot { background: var(--ch3-color); box-shadow: 0 0 6px var(--ch3-color); }
+    .ch4-dot { background: var(--ch4-color); box-shadow: 0 0 6px var(--ch4-color); }
+
+    .telemetry-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #060a12;
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      padding: 3px 8px;
+      font-size: 0.72rem;
+    }
+
+    .telemetry-badge .badge-param { color: var(--text-dim); font-size: 0.65rem; letter-spacing: 0.5px; text-transform: uppercase; }
+    .math-text { font-family: var(--font-math); font-style: italic; font-size: 0.88rem; }
+
+    .math-formula-tag {
+      font-family: var(--font-math);
+      font-size: 0.84rem;
+      color: #e2e8f0;
+      background: rgba(0, 242, 254, 0.08);
+      border: 1px solid rgba(0, 242, 254, 0.25);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-style: italic;
+    }
+
+    .btn-dual-wave {
+      background: #141f33;
+      border: 1px solid var(--border-highlight);
+      color: var(--text-dim);
+      font-size: 0.68rem;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn-dual-wave.active {
+      background: rgba(0, 242, 254, 0.15);
+      border-color: var(--ch2-color);
+      color: #fff;
+    }
+
+    canvas {
+      width: 100%;
+      height: 120px;
+      background: #030509;
+      border-radius: 4px;
+      border: 1px solid #121927;
+      display: block;
+    }
+
+    #cv-fft { height: 150px; cursor: crosshair; }
+
+    .crt-footer-telemetry {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 5px;
+      padding: 4px 8px;
+      background: #060a12;
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      color: var(--text-dim);
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .crt-footer-telemetry .footer-item { display: inline-flex; align-items: baseline; gap: 4px; }
+
+    .word-eq-var {
+      font-family: var(--font-math);
+      font-size: 0.82rem;
+      color: var(--text-label);
+      display: inline-flex;
+      align-items: baseline;
+    }
+
+    .word-eq-var i { font-family: var(--font-math); font-style: italic; font-weight: 600; }
+    .word-eq-var sub { font-family: var(--font-math); font-style: normal; font-size: 0.68rem; margin-left: 1px; }
+
+    .crt-footer-telemetry .footer-val { color: #fff; font-weight: 600; }
+
+    .controls-dock {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .dock-section { display: flex; flex-direction: column; gap: 5px; }
+
+    .section-label {
+      font-size: 0.70rem;
+      text-transform: uppercase;
+      letter-spacing: 1.1px;
+      color: var(--text-label);
+      font-weight: 700;
+      border-bottom: 1px solid var(--border-subtle);
+      padding-bottom: 3px;
+    }
+
+    .wave-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+    .btn-wave {
+      background: var(--bg-button);
+      border: 1px solid var(--border-highlight);
+      border-radius: 6px;
+      padding: 7px 6px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.15s ease;
+    }
+
+    .btn-wave .wave-icon-wrap { width: 28px; height: 18px; display: flex; align-items: center; justify-content: center; color: var(--text-dim); }
+    .btn-wave svg { width: 100%; height: 100%; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+    .btn-wave .wave-title { font-size: 0.75rem; font-weight: 700; color: var(--text-main); }
+
+    .word-eq-spec {
+      font-family: var(--font-math);
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .word-frac { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; font-size: 0.84em; line-height: 1; }
+    .word-frac .num { border-bottom: 1px solid currentColor; padding-bottom: 1px; font-style: italic; }
+    .word-frac .den { padding-top: 1px; font-style: italic; }
+
+    .btn-wave:hover { background: var(--bg-button-hover); border-color: #3b5075; }
+    .btn-wave.active { background: rgba(0, 242, 254, 0.08); border-color: var(--ch2-color); box-shadow: 0 0 8px rgba(0, 242, 254, 0.15); }
+    .btn-wave.active .wave-icon-wrap, .btn-wave.active .word-eq-spec { color: var(--ch2-color); }
+    .btn-wave.active .wave-title { color: #fff; }
+
+    .control-row { display: flex; justify-content: space-between; align-items: center; font-size: 0.76rem; }
+
+    .math-badge-display {
+      font-family: var(--font-math);
+      font-style: italic;
+      font-size: 0.88rem;
+      color: var(--ch2-color);
+      font-weight: 600;
+      background: rgba(0, 242, 254, 0.08);
+      border: 1px solid rgba(0, 242, 254, 0.25);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 5px;
+      background: #192233;
+      border-radius: 3px;
+      outline: none;
+      margin: 2px 0;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: var(--ch2-color);
+      cursor: pointer;
+    }
+
+    .presets-numbers-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; margin-top: 2px; }
+
+    .btn-preset-num {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      padding: 5px 0;
+      font-family: var(--font-math);
+      font-style: italic;
+      font-size: 0.88rem;
+      font-weight: 700;
+      color: var(--text-label);
+      cursor: pointer;
+      text-align: center;
+    }
+
+    .btn-preset-num:hover { background: #19253c; color: #fff; }
+    .btn-preset-num.active { background: rgba(0, 242, 254, 0.12); border-color: var(--ch2-color); color: var(--ch2-color); }
+
+    .btn-chip {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-dim);
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      padding: 3px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .btn-chip:hover { background: #1d2a44; color: #fff; border-color: var(--ch2-color); }
+
+    .playback-controls-grid { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 5px; }
+
+    .btn-playback {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      padding: 7px 4px;
+      border-radius: 6px;
+      font-size: 0.74rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .btn-playback svg { width: 13px; height: 13px; stroke: currentColor; fill: currentColor; }
+    .btn-playback:hover { background: #1c273e; }
+    .btn-playback.active-play { background: rgba(0, 242, 254, 0.1); border-color: var(--ch2-color); color: var(--ch2-color); }
+    .btn-playback.active-pause { background: rgba(255, 179, 0, 0.12); border-color: var(--ch4-color); color: var(--ch4-color); }
+
+    .btn-audio-master {
+      background: rgba(0, 255, 136, 0.08);
+      border: 1px solid var(--ch1-color);
+      color: var(--ch1-color);
+      font-size: 0.80rem;
+      font-weight: 700;
+      padding: 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: auto;
+    }
+
+    .btn-audio-master.playing { background: rgba(255, 0, 119, 0.12); border-color: var(--ch3-color); color: var(--ch3-color); }
+
+    /* Vista AC / DC y espectrograma integrado, con la misma estética del DSO. */
+    header { flex-wrap: wrap; gap: 8px 12px; }
+    .header-indicators { justify-content: flex-end; flex-wrap: wrap; }
+    #hud-mode { font-family: var(--font-mono); font-weight: 700; border-color: rgba(255, 179, 0, 0.65); color: #ffb300; background: rgba(255, 179, 0, 0.09); }
+    #hud-mode.mode-dc { border-color: rgba(0, 255, 136, .65); background: rgba(0, 255, 136, .08); color: #00ff88; }
+    .coupling-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .btn-coupling { padding: 8px 10px; border: 1px solid var(--border-highlight); border-radius: 5px; background: #121b2c; font-size: .78rem; color: var(--text-dim); font-weight: 700; cursor: pointer; }
+    .btn-coupling.active { border-color: var(--ch2-color); color: #fff; background: rgba(0, 242, 254, .12); }
+    .coupling-note { color: var(--text-dim); font-size: .68rem; line-height: 1.35; }
+    #dc-offset-controls { border-top: 1px solid var(--border-subtle); padding-top: 8px; margin-top: 3px; }
+    #dc-offset-controls[hidden] { display: none; }
+    .spectrogram-panel { margin-top: 9px; padding: 10px; background: #070b16; border: 1px solid #26304c; border-radius: 6px; }
+    .spectrogram-panel[hidden] { display: none !important; }
+    .spec-heading { display: flex; justify-content: space-between; gap: 9px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+    .spec-heading strong { display: block; color: #efb0ff; font-size: .75rem; letter-spacing: .75px; }
+    .spec-heading small { display: block; color: var(--text-dim); font-size: .68rem; margin-top: 2px; }
+    .spec-actions { display: flex; gap: 5px; flex-wrap: wrap; }
+    .spec-actions .btn-chip { padding: 5px 8px; font-size: .71rem; }
+    .spec-actions .btn-chip.active { border-color: #d871ff; color: #fff; background: rgba(203, 70, 246, .14); }
+    .spec-actions .btn-chip.spec-start { color: #fab9ff; border-color: #a449cd; }
+    #cv-spectrogram { height: 252px; background: #170024; }
+    .spec-meta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 5px; margin-top: 6px; font-size: .67rem; color: #aab3d0; }
+    .spec-controls { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 13px; margin-top: 10px; }
+    .spec-controls .control-row { gap: 5px; flex-wrap: wrap; font-size: .67rem; }
+    .spec-controls .math-badge-display { font-size: .74rem; padding: 2px 5px; color: #f5a3f4; border-color: rgba(220, 93, 239, .35); background: rgba(195, 48, 229, .08); }
+    .spec-controls input[type=range]::-webkit-slider-thumb { background: #eb82ff; }
+    .spec-footnote { font-size: .65rem; line-height: 1.35; color: #8190ac; margin-top: 8px; }
+    /* Control maestro de encendido. Los canales nunca arrancan sin selección explícita. */
+    .power-dock { padding: 10px; background: #0b1423; border: 1px solid #243753; border-radius: 8px; gap: 8px; }
+    .btn-power { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; min-height: 46px; border-radius: 7px; font-size: .91rem; font-weight: 800; letter-spacing: .5px; cursor: pointer; border: 1px solid #d96565; background: rgba(224, 74, 74, .10); color: #ff8b8b; transition: background .16s, box-shadow .16s, border-color .16s; }
+    .btn-power:hover { background: rgba(224, 74, 74, .19); }
+    .btn-power.is-on { border-color: #00ff88; background: rgba(0, 255, 136, .10); color: #00ff88; box-shadow: 0 0 12px rgba(0,255,136,.09); }
+    .btn-power.is-on:hover { background: rgba(0, 255, 136, .17); }
+    .power-icon { font-size: 1.4rem; line-height: 1; }
+    #hud-power { color: #ff8b8b; border-color: rgba(255, 108, 108, .5); background: rgba(255, 100, 100, .08); font-family: var(--font-mono); font-weight: 700; }
+    #hud-power.is-on { color: #00ff88; border-color: rgba(0, 255, 136, .5); background: rgba(0, 255, 136, .08); }
+    #hud-power.is-standby { color: #ffd36a; border-color: rgba(255, 211, 106, .5); background: rgba(255, 211, 106, .08); }
+    .power-message { color: #a9bad1; font-size: .71rem; line-height: 1.4; }
+    .btn-wave:disabled, .btn-playback:disabled, .btn-dual-wave:disabled, .btn-audio-master:disabled { opacity: .36; cursor: not-allowed; box-shadow: none; }
+    .btn-wave:disabled:hover { background: var(--bg-button); border-color: var(--border-highlight); }
+
+    @media (max-width: 680px) {
+      .brand-title { flex-wrap: wrap; font-size: 1rem; }
+      .spec-controls { grid-template-columns: 1fr; gap: 10px; }
+      .crt-header .crt-title { flex-wrap: wrap; }
+      .math-formula-tag { max-width: 100%; overflow-wrap: anywhere; }
+      #cv-spectrogram { height: 235px; }
+    }
+
+    /* ========== Revisión de diseño: monitores y panel a la misma altura ========== */
+    body { padding: 10px; }
+    header, .main-workspace { max-width: 1360px; }
+    .main-workspace { grid-template-columns: minmax(0, 1fr) 350px; align-items: stretch; }
+    .screens-column, .controls-dock, .crt-card { min-width: 0; }
+    .screens-column { gap: 8px; }
+    .crt-card { padding: 7px 10px 9px; }
+    .crt-title { min-width: 0; flex-wrap: wrap; }
+    .crt-header > div { min-width: 0; max-width: 100%; }
+    .crt-header > div:last-child { display: flex; flex-wrap: wrap; gap: 5px; }
+    .math-formula-tag { max-width: 100%; font-size: .77rem; white-space: normal; overflow-wrap: anywhere; line-height: 1.4; }
+    .telemetry-badge { min-width: 0; max-width: 100%; flex-wrap: wrap; line-height: 1.25; }
+    .telemetry-badge .badge-param { white-space: nowrap; }
+    #lbl-gibbs-pct { font-size: .79rem; white-space: normal; }
+    canvas:not(#cv-spectrogram):not(#cv-fft) { height: 138px; }
+    #cv-fft { height: 163px; }
+    .crt-footer-telemetry { column-gap: 6px; row-gap: 4px; font-size: .7rem; }
+    .crt-footer-telemetry .footer-item { white-space: nowrap; }
+
+    .controls-dock { padding: 12px; gap: 7px; justify-content: space-between; }
+    .controls-dock .dock-section { min-width: 0; gap: 4px; }
+    #acoustic-section { margin-top: 0; }
+    .btn-audio-master { margin-top: 0; padding: 8px; }
+    .section-label { font-size: .68rem; letter-spacing: .85px; }
+    .btn-wave { padding: 5px 5px; gap: 2px; }
+    .btn-wave .wave-icon-wrap { height: 15px; width: 25px; }
+    .btn-wave .wave-title { font-size: .73rem; }
+    .wave-grid { gap: 5px; }
+    .control-row { gap: 6px; line-height: 1.4; }
+    .control-row > span:first-child, .control-row > label:first-child { min-width: 0; }
+    .control-row .math-badge-display { white-space: nowrap; flex-shrink: 0; }
+    .btn-playback { padding: 7px 3px; }
+    .playback-controls-grid { grid-template-columns: 1.1fr 1fr 1fr; }
+    .presets-numbers-grid { margin-top: 3px; }
+
+    /* Evita el espacio falso entre barrido y monitoreo cuando se despliega
+       un espectrograma alto en el canal 4: el panel derecho no se estira. */
+    .main-workspace.spec-expanded .controls-dock { align-self: start; justify-content: flex-start; }
+    @media (min-width: 981px) {
+      /* En DC aparece el control de offset; el FFT crece lo necesario para
+         conservar alineados los bordes inferiores de los cuatro canales. */
+      .main-workspace.dc-selected:not(.spec-expanded) #cv-fft { height: 197px; }
+    }
+    .spectrogram-panel[hidden] { display: none !important; height: 0 !important; margin: 0 !important; padding: 0 !important; border: 0 !important; }
+    .spectrogram-panel:not([hidden]) { margin-top: 9px; }
+    .spec-actions { align-items: center; }
+    .spec-heading > div { min-width: 0; }
+    .spec-heading small { overflow-wrap: anywhere; }
+    .spec-controls { gap: 8px; }
+
+    /* Interruptor tipo equipo de laboratorio, cómodo y claro en OFF/ON. */
+    .power-dock { padding: 8px; gap: 6px; border-radius: 7px; }
+    .power-dock .section-label { margin-bottom: 1px; }
+    .btn-power {
+      min-height: 42px; padding: 6px 10px; gap: 9px;
+      justify-content: flex-start; letter-spacing: 0;
+      border-radius: 7px; text-align: left;
+      border: 1px solid #8c4351; background: linear-gradient(110deg, #1c1521, #111923);
+      color: #ffb4bc; box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+    .btn-power:hover { background: #291922; }
+    .btn-power.is-on { border-color: #17895f; background: linear-gradient(110deg, #082d26, #0a1d20); color: #acffe0; box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
+    .btn-power.is-on:hover { background: #0f352c; }
+    .btn-power:focus-visible { outline: 2px solid var(--ch2-color); outline-offset: 2px; }
+    .power-switch { display: inline-flex; position: relative; flex: 0 0 43px; height: 24px; background: #47222b; border: 1px solid #8e4e5b; border-radius: 15px; transition: background .2s; }
+    .switch-knob { width: 18px; height: 18px; position: absolute; top: 2px; left: 3px; background: #ffe1e3; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,.6); transition: transform .2s; }
+    .btn-power.is-on .power-switch { background: #076441; border-color: #17a16f; }
+    .btn-power.is-on .switch-knob { background: #d2ffec; transform: translateX(17px); }
+    .power-label { min-width: 0; flex: 1 1 auto; font-weight: 700; font-size: .78rem; }
+    .power-state { border: 1px solid currentColor; padding: 2px 6px; border-radius: 4px; font: 800 .68rem var(--font-mono); }
+    .power-message { font-size: .67rem; line-height: 1.3; }
+    .coupling-note { font-size: .65rem; }
+    .btn-dual-wave[aria-pressed="true"] { background: rgba(255,202,98,.13); border-color: #ffc35c; color: #fff3db; }
+
+    @media (max-width: 1120px) and (min-width: 981px) {
+      .main-workspace { grid-template-columns: minmax(0, 1fr) 328px; }
+      .crt-header { gap: 5px; }
+      .math-formula-tag { font-size: .7rem; }
+    }
+    @media (max-width: 980px) {
+      .main-workspace { grid-template-columns: minmax(0, 1fr); }
+      .controls-dock, .main-workspace.spec-expanded .controls-dock { align-self: auto; justify-content: flex-start; }
+      .controls-dock { gap: 10px; }
+    }
+    @media (max-width: 600px) {
+      body { padding: 6px; }
+      header { padding: 11px; }
+      .brand-title { font-size: 1rem; }
+      .header-indicators { justify-content: flex-start; gap: 5px; }
+      .badge-status { font-size: .72rem; padding: 3px 7px; }
+      .crt-card { padding: 7px 7px 8px; }
+      .crt-header { font-size: .73rem; }
+      .crt-title { gap: 5px; }
+      .crt-footer-telemetry { gap: 4px 10px; padding: 6px; font-size: .65rem; }
+      .math-formula-tag { font-size: .71rem; }
+      .controls-dock { padding: 10px; }
+      canvas:not(#cv-spectrogram):not(#cv-fft) { height: 138px; }
+      #cv-fft { height: 164px; }
+      .spec-controls { grid-template-columns: 1fr; gap: 11px; }
+      .spec-controls .control-row { flex-wrap: nowrap; }
+      #cv-spectrogram { height: 230px; }
+    }
+
+
+    /* 2026-11-09: layout and instrumentation corrections. */
+    :root { --panel-spacing: 9px; }
+    html, body { width: 100%; overflow-x: clip; }
+    header {
+      display: grid; grid-template-columns: minmax(0, 1fr) auto;
+      gap: 10px 16px; padding: 12px 16px;
+      align-items: center; min-width: 0;
+    }
+    .header-main { min-width: 0; }
+    .brand-title {
+      display: flex; align-items: baseline; flex-wrap: wrap;
+      gap: 3px 12px; min-width: 0;
+      font-size: clamp(.94rem, 1.32vw, 1.15rem); line-height: 1.25;
+    }
+    .brand-title > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+    .brand-title .school-label { color: #d8e1ef; font-size: .78em; letter-spacing: .025em; }
+    .brand-subtitle { overflow-wrap: anywhere; white-space: normal; margin-top: 3px; }
+    .header-indicators { min-width: 0; max-width: 100%; gap: 6px; justify-content: flex-end; }
+    .header-indicators .badge-status { white-space: nowrap; font-size: .75rem; padding: 5px 7px; }
+    .main-workspace { align-items: stretch; }
+    .screens-column { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+    .screens-column .crt-card:last-child { flex: 1 0 auto; display: flex; flex-direction: column; min-height: 210px; }
+    .crt-header { min-width: 0; }
+    .crt-header .crt-title { flex: 1 1 250px; min-width: 0; }
+    .math-formula-tag { min-width: 0; max-width: 100%; overflow-wrap: anywhere; font-size: .72rem; }
+    .crt-footer-telemetry { gap: 4px 8px; }
+    .controls-dock, .main-workspace.spec-expanded .controls-dock {
+      align-self: stretch; justify-content: flex-start;
+      gap: var(--panel-spacing); min-height: 0;
+    }
+    .controls-dock .dock-section, .controls-dock .section-label { min-width: 0; }
+    #acoustic-section { margin-top: 0 !important; }
+    #acoustic-section .btn-audio-master { margin-top: 0; }
+    .range-limits { display: flex; justify-content: space-between; color: #839ab2; font: .65rem var(--font-mono); margin-top: 0; }
+    .power-dock { padding: 10px; gap: 7px; border: 1px solid #34506b; background: linear-gradient(145deg, #101b2b, #0b1220); }
+    .power-dock .section-label { margin: 0; color: #c0d6ee; }
+    .btn-power, .btn-power.is-on {
+      display: grid; grid-template-columns: 12px minmax(0, 1fr) 87px;
+      align-items: center; gap: 9px; border: 1px solid #3b526a;
+      min-height: 61px; width: 100%; padding: 8px 10px;
+      background: linear-gradient(180deg, #172335, #0a121f);
+      border-radius: 8px; color: #e7effb;
+      box-shadow: inset 0 2px 0 rgba(255,255,255,.06), 0 4px 10px rgba(0,0,0,.18);
+      cursor: pointer; text-align: left;
+    }
+    .btn-power:hover, .btn-power.is-on:hover { background: linear-gradient(180deg, #22344a, #101d2d); border-color: #5a7391; }
+    .power-led {
+      width: 11px; height: 11px; border-radius: 50%; background: #f75f68;
+      border: 2px solid #612c35; box-shadow: 0 0 9px rgba(238,74,87,.65);
+      flex: none;
+    }
+    .btn-power.is-on .power-led { background: #36ffab; border-color: #22664b; box-shadow: 0 0 12px rgba(18,255,161,.75); }
+    .power-text-wrap { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+    .power-label { display:block; font-weight: 800; font-size: .78rem; line-height: 1.25; white-space: normal; }
+    .power-state { display: inline-block; align-self: flex-start; color: #ffb6b6; border: 0; background: transparent; padding: 0; font: 800 .67rem var(--font-mono); }
+    .btn-power.is-on .power-state { color: #62eec1; }
+    .power-switch, .btn-power.is-on .power-switch {
+      flex: none; display:block; position:relative; width: 87px; height: 38px;
+      border-radius: 5px; border: 1px solid #4b6079;
+      background: linear-gradient(110deg, #5a3036 0 49%, #183b32 50% 100%);
+      box-shadow: inset 0 2px 5px rgba(0,0,0,.75); overflow:hidden;
+    }
+    .power-switch::before, .power-switch::after {
+      position: absolute; top: 11px; font: 800 12px var(--font-mono);
+      z-index: 1; color: #e6f0fb; pointer-events: none;
+    }
+    .power-switch::before { content:'O'; left: 13px; }
+    .power-switch::after { content:'I'; right: 17px; }
+    .power-switch .switch-knob, .btn-power.is-on .power-switch .switch-knob {
+      display: block; position: absolute; z-index:2;
+      top:2px; left:2px; width:40px; height:32px; border-radius:3px;
+      transform: translateX(0); background:linear-gradient(180deg,#e2e9f2,#94a9be);
+      box-shadow: 1px 2px 5px rgba(0,0,0,.85); transition:transform .2s;
+    }
+    .btn-power.is-on .power-switch .switch-knob { transform: translateX(41px); background: linear-gradient(180deg,#d9ffec,#77cead); }
+    .btn-power:focus-visible { outline: 2px solid var(--ch2-color); outline-offset: 3px; }
+    /* Let channel 4 take up the remaining height when the spectral add-on is closed. */
+    .analyzer-views { display: flex; flex: 1 1 auto; min-height: 160px; flex-direction: column; min-width:0; }
+    .fft-view { flex:1 1 auto; min-height:155px; min-width:0; }
+    .fft-view #cv-fft { width:100%; height:100%; min-height:155px; }
+    .analyzer-views .spectrogram-panel[hidden] { display:none!important; }
+    .spec-expanded .analyzer-views { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px; flex:1 1 auto; align-items:stretch; }
+    .spec-expanded .analyzer-views .spectrogram-panel { margin:0; padding:8px; min-width:0; display:flex; flex-direction:column; }
+    .spec-expanded .analyzer-views .fft-view { min-height:240px; }
+    .spec-expanded .analyzer-views #cv-fft { min-height:240px; }
+    .spec-expanded .screens-column .crt-card:nth-child(-n+3) canvas { height:105px !important; }
+    .spec-expanded #cv-spectrogram { height:132px; min-height:132px; flex:1 1 auto; }
+    .spec-expanded .spec-heading { gap:3px 6px; margin-bottom:5px; }
+    .spec-expanded .spec-heading strong { font-size:.68rem; letter-spacing:.03em; }
+    .spec-expanded .spec-heading small { font-size:.62rem; }
+    .spec-expanded .spec-actions { gap:3px; }
+    .spec-expanded .spec-actions .btn-chip { padding:3px 6px; font-size:.63rem; }
+    .spec-expanded .spec-meta { font-size:.6rem; line-height:1.25; margin-top:4px; }
+    .spec-expanded .spec-controls { margin-top:6px; gap:4px; grid-template-columns:repeat(3,minmax(0,1fr)); }
+    .spec-expanded .spec-controls .control-row { display:flex; flex-wrap:wrap; font-size:.61rem; gap:3px; }
+    .spec-expanded .spec-controls .math-badge-display { font-size:.66rem; padding:0 3px; }
+    .spec-expanded .spec-footnote { font-size:.59rem; margin-top:5px; }
+    .spec-expanded .screens-column .crt-card:last-child { flex:1 0 auto; }
+    @media (max-width: 1180px) {
+      header { grid-template-columns: minmax(0,1fr); }
+      .header-indicators { justify-content:flex-start; }
+    }
+    @media (max-width: 1100px) and (min-width:981px) {
+      .spec-expanded .analyzer-views { grid-template-columns: 1fr; }
+      .spec-expanded .analyzer-views .fft-view,
+      .spec-expanded .analyzer-views #cv-fft { min-height: 125px; height: 125px; }
+      .spec-expanded #cv-spectrogram { height: 130px; }
+      .spec-expanded .screens-column .crt-card:nth-child(-n+3) canvas {height:95px !important;}
+    }
+    @media (max-width: 980px) {
+      .screens-column .crt-card:last-child { flex:0 0 auto; }
+      .analyzer-views { flex:0 0 auto; }
+      .fft-view, .fft-view #cv-fft { min-height:165px; height:165px; }
+      .controls-dock, .main-workspace.spec-expanded .controls-dock { align-self:auto; }
+      .spec-expanded .analyzer-views { grid-template-columns: 1fr; }
+      .spec-expanded .analyzer-views #cv-fft,
+      .spec-expanded .analyzer-views .fft-view { min-height:145px; height:145px; }
+      .spec-expanded #cv-spectrogram {height:190px;}
+      .spec-expanded .screens-column .crt-card:nth-child(-n+3) canvas { height:126px !important; }
+    }
+    @media (max-width: 600px) {
+      .brand-title { font-size: 1rem; }
+      .header-indicators .badge-status {font-size:.68rem;}
+      .btn-power, .btn-power.is-on {grid-template-columns:12px minmax(0,1fr) 87px;}
+      .spec-expanded .spec-controls {grid-template-columns:1fr;gap:7px;}
+      .spec-expanded .spec-controls .control-row {flex-wrap:nowrap;}
+      .spec-expanded #cv-spectrogram {height:196px;}
+    }
+
+    /* Permanent instrument layout: FFT ABOVE the full-width spectrogram.
+       Display geometry is independent from power and waveform selection. */
+    .main-workspace, .main-workspace.spec-expanded { align-items: start; }
+    .screens-column .crt-card:last-child,
+    .spec-expanded .screens-column .crt-card:last-child {
+      display: flex; flex-direction: column; flex: 0 0 auto; min-height: 0;
+    }
+    .analyzer-views, .spec-expanded .analyzer-views {
+      display: flex; flex-direction: column; gap: 9px;
+      flex: 0 0 auto; min-height: 0; align-items: stretch;
+      grid-template-columns: none;
+    }
+    .fft-view, .analyzer-views .fft-view,
+    .spec-expanded .analyzer-views .fft-view {
+      display: block; flex: 0 0 auto; width: 100%; min-height: 0;
+      height: 174px;
+    }
+    .fft-view #cv-fft, #cv-fft,
+    .spec-expanded .analyzer-views #cv-fft {
+      display: block; width: 100%; height: 174px;
+      min-height: 0; max-height: none;
+    }
+    .analyzer-views .spectrogram-panel,
+    .spec-expanded .analyzer-views .spectrogram-panel {
+      display: flex; flex-direction: column; flex: 0 0 auto;
+      min-width: 0; width: 100%; margin: 0;
+      padding: 10px; gap: 0;
+    }
+    .analyzer-views .spectrogram-panel[hidden] { display: none !important; }
+    #cv-spectrogram, .spec-expanded #cv-spectrogram {
+      display: block; width: 100%; height: 250px;
+      min-height: 0; max-height: none; flex: 0 0 auto;
+    }
+    .spec-expanded .screens-column .crt-card:nth-child(-n+3) canvas,
+    .screens-column .crt-card:nth-child(-n+3) canvas {
+      height: 138px !important;
+    }
+    .spec-expanded .spec-heading { gap: 7px 10px; margin-bottom: 9px; }
+    .spec-expanded .spec-heading strong { font-size: .75rem; letter-spacing: .045em; }
+    .spec-expanded .spec-heading small { font-size: .68rem; }
+    .spec-expanded .spec-actions { gap: 5px; }
+    .spec-expanded .spec-actions .btn-chip { padding: 5px 8px; font-size: .7rem; }
+    .spec-expanded .spec-meta { font-size: .67rem; line-height: 1.35; margin-top: 7px; }
+    .spec-expanded .spec-controls { margin-top: 9px; gap: 9px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .spec-expanded .spec-controls .control-row { font-size: .68rem; gap: 5px; flex-wrap: wrap; }
+    .spec-expanded .spec-controls .math-badge-display { font-size: .74rem; padding: 2px 5px; }
+    .spec-expanded .spec-footnote { font-size: .66rem; line-height: 1.4; margin-top: 8px; }
+    .controls-dock, .main-workspace.spec-expanded .controls-dock {
+      align-self: start; height: auto; min-height: 0;
+      justify-content: flex-start; gap: 9px;
+    }
+    #acoustic-section { margin-top: 0 !important; }
+    #acoustic-section .btn-audio-master { margin-top: 0; }
+    @media (max-width: 1100px) and (min-width: 981px) {
+      .analyzer-views, .spec-expanded .analyzer-views { display: flex; flex-direction: column; }
+      .fft-view, .spec-expanded .analyzer-views .fft-view { height: 174px; min-height: 0; }
+      #cv-fft, .spec-expanded .analyzer-views #cv-fft { height: 174px; min-height: 0; }
+    }
+    @media (max-width: 980px) {
+      .main-workspace, .main-workspace.spec-expanded { align-items: start; }
+      .controls-dock, .main-workspace.spec-expanded .controls-dock { align-self: stretch; }
+      .fft-view, .spec-expanded .analyzer-views .fft-view { height: 170px; min-height: 0; }
+      #cv-fft, .spec-expanded .analyzer-views #cv-fft { height: 170px; min-height: 0; }
+      .spec-expanded #cv-spectrogram, #cv-spectrogram { height: 230px; min-height: 0; }
+      .spec-expanded .screens-column .crt-card:nth-child(-n+3) canvas { height: 138px !important; }
+    }
+    @media (max-width: 600px) {
+      .spec-expanded .spec-controls { grid-template-columns: 1fr; gap: 9px; }
+      .spec-expanded .spec-controls .control-row { flex-wrap: nowrap; }
+      #cv-spectrogram, .spec-expanded #cv-spectrogram { height: 205px; }
+    }
+
+    /* Final panel alignment: the sidebar background reaches the spectrogram bottom,
+       while playback and acoustic controls remain adjacent (no internal blank gap). */
+    @media (min-width: 981px) {
+      .main-workspace, .main-workspace.spec-expanded {
+        align-items: stretch;
+      }
+      .controls-dock, .main-workspace.spec-expanded .controls-dock {
+        align-self: stretch;
+        height: auto;
+        min-height: 100%;
+        justify-content: flex-start;
+        gap: 9px;
+      }
+    }
+    @media (max-width: 980px) {
+      .main-workspace, .main-workspace.spec-expanded { align-items: start; }
+      .controls-dock, .main-workspace.spec-expanded .controls-dock {
+        min-height: 0;
+        height: auto;
+      }
+    }
+
+    /* Distribucion vertical proporcional del panel de instrumentacion.
+       Mantener el mismo alto que la columna de canales y ocuparlo completo.
+       Barrido y audio forman una unidad para no separarlos con un hueco gigante. */
+    .acquisition-audio-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-width: 0;
+    }
+    @media (min-width: 981px) {
+      .main-workspace, .main-workspace.spec-expanded {
+        align-items: stretch;
+      }
+      .controls-dock, .main-workspace.spec-expanded .controls-dock {
+        display: flex;
+        flex-direction: column;
+        align-self: stretch;
+        height: auto;
+        min-height: 100%;
+        justify-content: space-between;
+        gap: clamp(12px, 1.4vh, 22px);
+      }
+      .controls-dock > .dock-section,
+      .controls-dock > .acquisition-audio-group { flex: 0 0 auto; }
+    }
+    @media (max-width: 980px) {
+      .controls-dock, .main-workspace.spec-expanded .controls-dock {
+        justify-content: flex-start;
+        gap: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- =================================================================== -->
+  <!-- SECTOR 2: ESTRUCTURA SEMÁNTICA DEL DOM (HTML5)                      -->
+  <!-- =================================================================== -->
+
+  <header>
+    <div class="header-main">
+      <div class="brand-title"><span>SISTEMA DE ANÁLISIS DE FOURIER</span><span class="school-label">ESIME ZACATENCO</span></div>
+      <div class="brand-subtitle">Simulador de Síntesis Armónica &bull; Dominio del Tiempo y la Frecuencia</div>
+    </div>
+    <div class="header-indicators">
+      <div class="badge-status" id="hud-periodo"><i>T</i><sub>0</sub> = 1.333 ms</div>
+      <div class="badge-status" id="hud-calibracion"><i>f</i><sub>0</sub> = 750 Hz</div>
+      <div class="badge-status" id="hud-mode" aria-live="polite">MODO: AC</div>
+      <div class="badge-status" id="hud-power" aria-live="polite">EQUIPO: OFF</div>
+    </div>
+  </header>
+
+  <div class="main-workspace spec-expanded">
+    <div class="screens-column">
+      
+      <!-- Canal 1 -->
+      <div class="crt-card">
+        <div class="crt-header">
+          <div class="crt-title">
+            <span class="crt-dot ch1-dot"></span>
+            <span style="color: var(--ch1-color);">CANAL 1</span> &mdash; Fundamental Senoidal Pura
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button class="btn-dual-wave" id="btn-toggle-ch1-w2" title="Misma frecuencia y amplitud, desfasada 90°" aria-pressed="false">+ 2da Onda (f₀)</button>
+            <div class="telemetry-badge">
+              <span class="badge-param">Base:</span>
+              <span class="math-text" style="color: var(--ch1-color); font-weight: bold;"><i>n</i> = 1</span>
+            </div>
+          </div>
+        </div>
+        <canvas id="cv-fundamental"></canvas>
+        <div class="crt-footer-telemetry" id="footer-ch1">
+          <div class="footer-item"><span class="word-eq-var"><i>T</i><sub>0</sub>&nbsp;=</span><span class="footer-val" id="ch1-t0">1.333 ms</span></div>
+          <div class="footer-item"><span class="word-eq-var"><i>t</i><sub>div</sub>&nbsp;=</span><span class="footer-val" id="ch1-tdiv">400.0 µs/div</span></div>
+          <div class="footer-item"><span class="word-eq-var"><i>V</i><sub>div</sub>&nbsp;=</span><span class="footer-val" id="ch1-vdiv">4.50 V/div</span></div>
+          <div class="footer-item"><span class="word-eq-var"><i>V</i><sub>pp</sub>&nbsp;=</span><span class="footer-val" id="ch1-vpp" style="color: var(--ch1-color);">20.00 V</span></div>
+          <div class="footer-item"><span class="word-eq-var">Ciclos&nbsp;=</span><span class="footer-val" id="ch1-cycles">3.00</span></div>
+        </div>
+      </div>
+
+      <!-- Canal 2 -->
+      <div class="crt-card">
+        <div class="crt-header">
+          <div class="crt-title">
+            <span class="crt-dot ch2-dot"></span>
+            <span style="color: var(--ch2-color);">CANAL 2</span> &mdash; Síntesis de Fourier
+            <div class="math-formula-tag" id="disp-math-sn"><i>S</i><sub><i>N</i></sub>(<i>t</i>)</div>
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button class="btn-dual-wave active" id="btn-toggle-ch2-w2">+ 2da Onda (Ideal)</button>
+            <div class="telemetry-badge">
+              <span class="badge-param" id="lbl-gibbs-title">Gibbs:</span>
+              <span class="math-text" id="lbl-gibbs-pct" style="color: #ffb300; font-weight: bold;">—</span>
+            </div>
+          </div>
+        </div>
+        <canvas id="cv-fourier"></canvas>
+        <div class="crt-footer-telemetry" id="footer-ch2">
+          <div class="footer-item"><span class="word-eq-var"><i>T</i><sub>0</sub>&nbsp;=</span><span class="footer-val" id="ch2-t0">1.333 ms</span></div>
+          <div class="footer-item"><span class="word-eq-var"><i>t</i><sub>div</sub>&nbsp;=</span><span class="footer-val" id="ch2-tdiv">400.0 µs/div</span></div>
+          <div class="footer-item"><span class="word-eq-var"><i>V</i><sub>div</sub>&nbsp;=</span><span class="footer-val" id="ch2-vdiv">4.50 V/div</span></div>
+          <div class="footer-item"><span class="word-eq-var"><i>V</i><sub>pp</sub>&nbsp;=</span><span class="footer-val" id="ch2-vpp" style="color: var(--ch2-color);">21.79 V</span></div>
+          <div class="footer-item"><span class="word-eq-var">Ciclos&nbsp;=</span><span class="footer-val" id="ch2-cycles">3.00</span></div>
+        </div>
+      </div>
+
+      <!-- Canal 3 -->
+      <div class="crt-card">
+        <div class="crt-header">
+          <div class="crt-title">
+            <span class="crt-dot ch3-dot"></span>
+            <span style="color: var(--ch3-color);">CANAL 3</span> &mdash; Forma de Onda Periódica de Referencia
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            <button class="btn-dual-wave" id="btn-toggle-ch3-w2" title="Activa la comparación con una segunda onda de la misma forma, amplitud y frecuencia, desfasada 90°" aria-pressed="false">+ 2da Onda (90°)</button>
+            <div class="telemetry-badge">
+              <span class="badge-param">Modelo:</span>
+              <span class="math-text" id="lbl-ch3-name" style="color: #fff;">Cuadrada</span>
+            </div>
+          </div>
+        </div>
+        <canvas id="cv-ideal"></canvas>
+        <div class="crt-footer-telemetry" id="footer-ch3">
+          <div class="footer-item"><span class="word-eq-var"><i>T</i><sub>0</sub>&nbsp;=</span><span class="footer-val" id="ch3-t0">1.333 ms</span></div>
+          <div class="footer-item"><span class="word-eq-var"><i>t</i><sub>div</sub>&nbsp;=</span><span class="footer-val" id="ch3-tdiv">400.0 µs/div</span></div>
+          <div class="footer-item"><span class="word-eq-var"><i>V</i><sub>div</sub>&nbsp;=</span><span class="footer-val" id="ch3-vdiv">4.50 V/div</span></div>
+          <div class="footer-item"><span class="word-eq-var"><i>V</i><sub>pp</sub>&nbsp;=</span><span class="footer-val" id="ch3-vpp" style="color: var(--ch3-color);">20.00 V</span></div>
+          <div class="footer-item"><span class="word-eq-var">Ciclos&nbsp;=</span><span class="footer-val" id="ch3-cycles">3.00</span></div>
+        </div>
+      </div>
+
+      <!-- Canal 4 -->
+      <div class="crt-card">
+        <div class="crt-header">
+          <div class="crt-title">
+            <span class="crt-dot ch4-dot"></span>
+            <span style="color: var(--ch4-color);">CANAL 4</span> &mdash; Analizador Espectral FFT en Tiempo Real
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            <div class="telemetry-badge">
+              <span class="badge-param">Cursor:</span>
+              <span class="math-text" id="lbl-cursor-note" style="color: #ff9900; font-weight: bold;">G♭₅</span>
+            </div>
+          </div>
+        </div>
+        <div class="analyzer-views">
+          <div class="fft-view"><canvas id="cv-fft" aria-label="Espectro de armónicos del simulador"></canvas></div>
+          <section id="spectrogram-panel" class="spectrogram-panel">
+          <div class="spec-heading">
+            <div>
+              <strong>ESPECTROGRAMA · FRECUENCIA / TIEMPO</strong>
+              <small>Mapa de intensidad en dBFS · escala logarítmica</small>
+            </div>
+            <div class="spec-actions">
+              <button class="btn-chip active" id="btn-spec-sim" title="Usar las señales del simulador">Simulador</button>
+              <button class="btn-chip" id="btn-spec-mic" title="Solicitar permiso para analizar sonido ambiente">Micrófono</button>
+              <button class="btn-chip spec-start" id="btn-spec-start">▮▮ Pausar RTA</button>
+            </div>
+          </div>
+          <canvas id="cv-spectrogram" aria-label="Espectrograma de frecuencias y nivel sonoro"></canvas>
+          <div class="spec-meta">
+            <span id="spec-status" aria-live="polite">Equipo apagado: analizador listo, sin señal</span>
+            <span id="spec-time-window">Historial: 0.0 s</span>
+          </div>
+          <div class="spec-controls">
+            <div class="dock-section">
+              <div class="control-row"><label for="rng-spec-freq">Frecuencia máxima</label><span id="disp-spec-freq" class="math-badge-display">20 kHz</span></div>
+              <input id="rng-spec-freq" type="range" min="1000" max="20000" step="1000" value="20000">
+            </div>
+            <div class="dock-section">
+              <div class="control-row"><label for="rng-spec-db">Piso de dBFS</label><span id="disp-spec-db" class="math-badge-display">−140 dB</span></div>
+              <input id="rng-spec-db" type="range" min="-160" max="-60" step="10" value="-140">
+            </div>
+            <div class="dock-section">
+              <div class="control-row"><label for="rng-spec-speed">Velocidad</label><span id="disp-spec-speed" class="math-badge-display">100 px/s</span></div>
+              <input id="rng-spec-speed" type="range" min="25" max="200" step="25" value="100">
+            </div>
+          </div>
+          <p class="spec-footnote">El modo Simulador muestra los armónicos calculados. Para medir sonido ambiente, selecciona Micrófono y autoriza el acceso en el navegador.</p>
+          </section>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- PANEL LATERAL DE INSTRUMENTACIÓN -->
+    <div class="controls-dock">
+
+      <!-- Interruptor principal: encender NO inicia señales automáticamente. -->
+      <section class="dock-section power-dock" aria-label="Encendido del simulador">
+        <div class="section-label">Alimentación general · Interruptor maestro</div>
+        <button type="button" class="btn-power" id="btn-power" aria-pressed="false" title="Encender o apagar el equipo">
+          <span class="power-led" aria-hidden="true"></span>
+          <span class="power-text-wrap"><span class="power-label" id="txt-power">EQUIPO APAGADO</span><span class="power-state" id="power-chip">OFF</span></span>
+          <span class="power-switch" aria-hidden="true"><span class="switch-knob"></span></span>
+        </button>
+        <p class="power-message" id="power-message" aria-live="polite">Presiona ON y después elige una forma de onda para comenzar.</p>
+      </section>
+
+      <!-- Acoplamiento AC/DC. DC conserva un offset configurable; AC lo elimina. -->
+      <div class="dock-section">
+        <div class="section-label">Acoplamiento de Señal (AC / DC)</div>
+        <div class="coupling-grid" role="group" aria-label="Acoplamiento de señal">
+          <button class="btn-coupling active" id="btn-coupling-ac" aria-pressed="true">● AC (Alterna)</button>
+          <button class="btn-coupling" id="btn-coupling-dc" aria-pressed="false">● DC (Directa)</button>
+        </div>
+        <p class="coupling-note" id="coupling-note">AC elimina la componente continua y centra la señal en 0 V.</p>
+        <div class="dock-section" id="dc-offset-controls" hidden>
+          <div class="control-row"><label for="rng-dc-offset">Componente continua (offset)</label><span class="math-badge-display" id="disp-dc-offset">+10.0 V</span></div>
+          <input id="rng-dc-offset" type="range" min="0" max="150" step="10" value="100" aria-label="Offset de corriente directa en porcentaje de amplitud">
+          <p class="coupling-note">Ajuste de 0 % a 150 % de la amplitud. Las escalas de los 3 canales se adaptan automáticamente.</p>
+        </div>
+      </div>
+
+      <!-- Selector de Formas de Onda -->
+      <div class="dock-section">
+        <div class="section-label">Forma de Onda Periódica</div>
+        <div class="wave-grid">
+          
+          <button class="btn-wave" data-type="square" disabled>
+            <div class="wave-icon-wrap"><svg viewBox="0 0 28 20"><path d="M2 17V3h12v14h12V3"/></svg></div>
+            <span class="wave-title">Cuadrada</span>
+            <div class="word-eq-spec"><span class="term-label">Impares</span>&bull;<div class="word-frac"><span class="num">1</span><span class="den"><i>n</i></span></div></div>
+          </button>
+
+          <button class="btn-wave" data-type="sawtooth" disabled>
+            <div class="wave-icon-wrap"><svg viewBox="0 0 28 20"><path d="M2 17L14 3v14L26 3v14"/></svg></div>
+            <span class="wave-title">Diente Sierra</span>
+            <div class="word-eq-spec"><span class="term-label">Todos</span>&bull;<div class="word-frac"><span class="num">1</span><span class="den"><i>n</i></span></div></div>
+          </button>
+
+          <button class="btn-wave" data-type="triangle" disabled>
+            <div class="wave-icon-wrap"><svg viewBox="0 0 28 20"><path d="M2 17L8 3l8 14 8-14 2 3"/></svg></div>
+            <span class="wave-title">Triangular</span>
+            <div class="word-eq-spec"><span class="term-label">Impares</span>&bull;<div class="word-frac"><span class="num">1</span><span class="den"><i>n</i><sup>2</sup></span></div></div>
+          </button>
+
+          <button class="btn-wave" data-type="sine" disabled>
+            <div class="wave-icon-wrap"><svg viewBox="0 0 28 20"><path d="M2 10c3-9 5-9 9 0s6 9 9 0 4-9 6 0"/></svg></div>
+            <span class="wave-title">Senoidal</span>
+            <div class="word-eq-spec"><span class="term-label">Base Pura</span>&bull;<span><i>n</i> = 1</span></div>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Frecuencia Fundamental -->
+      <div class="dock-section">
+        <div class="control-row">
+          <span>Frecuencia Fundamental (<i>f</i><sub>0</sub>):</span>
+          <span class="math-badge-display" id="disp-freq">750 Hz</span>
+        </div>
+        <input type="range" id="rng-freq" min="1" max="2500" step="1" value="750">
+        <div style="display: flex; justify-content: space-between; gap: 4px;">
+          <button class="btn-chip" id="btn-fix-1hz">1 Hz (s)</button>
+          <button class="btn-chip" id="btn-fix-100hz">100 Hz (ms)</button>
+          <button class="btn-chip" id="btn-fix-750" style="border-color: var(--ch2-color); color: #fff;">Fijar a 750 Hz</button>
+        </div>
+      </div>
+
+      <!-- Amplitud Pico -->
+      <div class="dock-section">
+        <div class="control-row">
+          <span>Amplitud pico (<i>A</i>) · 1 a 100 V:</span>
+          <span class="math-badge-display" id="disp-amp">10.0 V</span>
+        </div>
+        <input type="range" id="rng-amp" min="1" max="100" step="1" value="10" aria-label="Amplitud pico de 1 a 100 voltios">
+        <div class="range-limits" aria-hidden="true"><span>1 V</span><span>100 V</span></div>
+      </div>
+
+      <!-- Ajustes de Retícula -->
+      <div class="dock-section">
+        <div class="section-label">Retícula y Calibración DSO</div>
+        <div class="control-row">
+          <span>Divisiones Horizontales (Div X):</span>
+          <span class="math-badge-display" id="disp-divx">10 div</span>
+        </div>
+        <input type="range" id="rng-divx" min="6" max="16" step="2" value="10">
+
+        <div class="control-row">
+          <span>Divisiones Verticales (Div Y):</span>
+          <span class="math-badge-display" id="disp-divy">6 div</span>
+        </div>
+        <input type="range" id="rng-divy" min="4" max="12" step="2" value="6">
+      </div>
+
+      <!-- Selector de Términos de Fourier -->
+      <div class="dock-section">
+        <div class="control-row">
+          <span>Términos de Fourier (<i>N</i>):</span>
+          <span class="math-badge-display" id="disp-n"><i>N</i> = 5</span>
+        </div>
+        <input type="range" id="rng-n" min="1" max="45" step="1" value="5">
+        <div class="presets-numbers-grid">
+          <button class="btn-preset-num" data-preset="2">2</button>
+          <button class="btn-preset-num active" data-preset="5">5</button>
+          <button class="btn-preset-num" data-preset="10">10</button>
+          <button class="btn-preset-num" data-preset="15">15</button>
+          <button class="btn-preset-num" data-preset="20">20</button>
+          <button class="btn-preset-num" data-preset="25">25</button>
+        </div>
+      </div>
+
+      <div class="acquisition-audio-group" aria-label="Controles de barrido y monitoreo acústico">
+      <!-- Control de Traza -->
+      <div class="dock-section">
+        <div class="section-label">Control de barrido y adquisición</div>
+        <div class="playback-controls-grid">
+          <button class="btn-playback active-pause" id="btn-play-pause" disabled>
+            <svg id="svg-play-pause" viewBox="0 0 24 24"><polygon points="5,3 19,12 5,21"/></svg>
+            <span id="txt-play-pause">Play</span>
+          </button>
+          <button class="btn-playback" id="btn-stop">
+            <svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14"/></svg>
+            <span>Stop</span>
+          </button>
+          <button class="btn-playback" id="btn-reset">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+            <span>Reiniciar</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Generador de Audio -->
+      <div class="dock-section" id="acoustic-section">
+        <div class="section-label">Monitoreo Acústico</div>
+        <button class="btn-audio-master" id="btn-audio">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+          <span id="txt-audio">Activar Tono Acústico</span>
+        </button>
+      </div>
+      </div><!-- Fin de controles de barrido y monitoreo acústico -->
+
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- SECTOR 3: NÚCLEO DE ESTADO, CONSTANTES Y MAPEO DEL DOM (JS)        -->
+  <!-- =================================================================== -->
+  <script>
+    const state = {
+      waveType: 'square', // Preferencia inicial interna; NO constituye una selección del usuario.
+      powerOn: false,
+      waveSelected: false,
+      f0: 750,
+      amplitude: 10.0,
+      harmonicsN: 5,
+      divX: 10,
+      divY: 6,
+      cyclesShown: 3.0,
+      isPlayingMotion: false,
+      isPlayingAudio: false,
+      phaseOffset: 0,
+      selectedHarmonicIndex: 1,
+      ch1Wave2: false,
+      ch2Wave2: true,
+      ch3Wave2: false,
+      coupling: 'AC',
+      dcBiasRatio: 1,
+      specVisible: true,
+      specRunning: false,
+      specSource: 'sim',
+      specMaxFreq: 20000,
+      specMinDB: -140,
+      specSpeed: 100
+    };
+
+    const logFreqTicks = [
+      { f: 31.25, label: '31.25' }, { f: 62.5, label: '62.5' }, { f: 125, label: '125' },
+      { f: 250, label: '250' }, { f: 500, label: '500' }, { f: 1000, label: '1k' },
+      { f: 2000, label: '2k' }, { f: 4000, label: '4k' }, { f: 8000, label: '8k' }, { f: 16000, label: '16k' }
+    ];
+    const minLogFreq = 20, maxLogFreq = 20000;
+
+    const cvF1 = document.getElementById('cv-fundamental');
+    const cvSN = document.getElementById('cv-fourier');
+    const cvIdeal = document.getElementById('cv-ideal');
+    const cvFFT = document.getElementById('cv-fft');
+
+    const rngFreq = document.getElementById('rng-freq');
+    const rngAmp = document.getElementById('rng-amp');
+    const rngN = document.getElementById('rng-n');
+    const rngDivX = document.getElementById('rng-divx');
+    const rngDivY = document.getElementById('rng-divy');
+
+    const dispFreq = document.getElementById('disp-freq');
+    const dispAmp = document.getElementById('disp-amp');
+    const dispN = document.getElementById('disp-n');
+    const dispDivX = document.getElementById('disp-divx');
+    const dispDivY = document.getElementById('disp-divy');
+    const dispMathSN = document.getElementById('disp-math-sn');
+    const lblGibbsPct = document.getElementById('lbl-gibbs-pct');
+    const lblGibbsTitle = document.getElementById('lbl-gibbs-title');
+    const gibbsTelemetry = lblGibbsPct.closest('.telemetry-badge');
+
+    const hudPeriodo = document.getElementById('hud-periodo');
+    const hudCalib = document.getElementById('hud-calibracion');
+    const lblCh3Name = document.getElementById('lbl-ch3-name');
+    const hudMode = document.getElementById('hud-mode');
+    const hudPower = document.getElementById('hud-power');
+    const btnPower = document.getElementById('btn-power');
+    const txtPower = document.getElementById('txt-power');
+    const powerChip = document.getElementById('power-chip');
+    const powerMessage = document.getElementById('power-message');
+    const btnCouplingAC = document.getElementById('btn-coupling-ac');
+    const btnCouplingDC = document.getElementById('btn-coupling-dc');
+    const couplingNote = document.getElementById('coupling-note');
+    const dcOffsetControls = document.getElementById('dc-offset-controls');
+    const rngDCOffset = document.getElementById('rng-dc-offset');
+    const dispDCOffset = document.getElementById('disp-dc-offset');
+    const specPanel = document.getElementById('spectrogram-panel');
+    const cvSpec = document.getElementById('cv-spectrogram');
+    const btnSpecSim = document.getElementById('btn-spec-sim');
+    const btnSpecMic = document.getElementById('btn-spec-mic');
+    const btnSpecStart = document.getElementById('btn-spec-start');
+    const specStatus = document.getElementById('spec-status');
+    const specTimeWindow = document.getElementById('spec-time-window');
+    const rngSpecFreq = document.getElementById('rng-spec-freq');
+    const rngSpecDB = document.getElementById('rng-spec-db');
+    const rngSpecSpeed = document.getElementById('rng-spec-speed');
+    const lblCursorNote = document.getElementById('lbl-cursor-note');
+
+    const btnCh1W2 = document.getElementById('btn-toggle-ch1-w2');
+    const btnCh2W2 = document.getElementById('btn-toggle-ch2-w2');
+    const btnCh3W2 = document.getElementById('btn-toggle-ch3-w2');
+
+    const ch1T0 = document.getElementById('ch1-t0'), ch1Tdiv = document.getElementById('ch1-tdiv'), ch1Vdiv = document.getElementById('ch1-vdiv'), ch1Vpp = document.getElementById('ch1-vpp'), ch1Cycles = document.getElementById('ch1-cycles');
+    const ch2T0 = document.getElementById('ch2-t0'), ch2Tdiv = document.getElementById('ch2-tdiv'), ch2Vdiv = document.getElementById('ch2-vdiv'), ch2Vpp = document.getElementById('ch2-vpp'), ch2Cycles = document.getElementById('ch2-cycles');
+    const ch3T0 = document.getElementById('ch3-t0'), ch3Tdiv = document.getElementById('ch3-tdiv'), ch3Vdiv = document.getElementById('ch3-vdiv'), ch3Vpp = document.getElementById('ch3-vpp'), ch3Cycles = document.getElementById('ch3-cycles');
+
+    const btnPlayPause = document.getElementById('btn-play-pause');
+    const txtPlayPause = document.getElementById('txt-play-pause');
+    const svgPlayPause = document.getElementById('svg-play-pause');
+    const btnStop = document.getElementById('btn-stop');
+    const btnReset = document.getElementById('btn-reset');
+    const btnFix750 = document.getElementById('btn-fix-750');
+    const btnFix100 = document.getElementById('btn-fix-100hz');
+    const btnFix1 = document.getElementById('btn-fix-1hz');
+    const btnAudio = document.getElementById('btn-audio');
+    const txtAudio = document.getElementById('txt-audio');
+
+    const waveButtons = document.querySelectorAll('.btn-wave');
+    const presetButtons = document.querySelectorAll('.btn-preset-num');
+
+    let audioCtx = null, oscNode = null, masterGain = null;
+
+    function initCanvas(cv) {
+      if (!cv) return null;
+      const dpr = window.devicePixelRatio || 1;
+      cv.width = cv.clientWidth * dpr;
+      cv.height = cv.clientHeight * dpr;
+      const ctx = cv.getContext('2d');
+      ctx.scale(dpr, dpr);
+      return ctx;
+    }
+
+    let ctxF1 = initCanvas(cvF1), ctxSN = initCanvas(cvSN), ctxIdeal = initCanvas(cvIdeal), ctxFFT = initCanvas(cvFFT);
+
+    window.addEventListener('resize', () => {
+      ctxF1 = initCanvas(cvF1); ctxSN = initCanvas(cvSN); ctxIdeal = initCanvas(cvIdeal); ctxFFT = initCanvas(cvFFT);
+    });
+
+    // ===================================================================
+    // SECTOR 4: MODELADO MATEMÁTICO, ESCALAS DE TIEMPO Y GIBBS EXACTO (JS)
+    // ===================================================================
+    function formatTimeValue(seconds) {
+      if (seconds < 1e-3) {
+        return { val: (seconds * 1e6).toFixed(1), unit: 'µs', str: `${(seconds * 1e6).toFixed(1)} µs` };
+      } else if (seconds < 1.0) {
+        return { val: (seconds * 1e3).toFixed(3), unit: 'ms', str: `${(seconds * 1e3).toFixed(3)} ms` };
+      } else {
+        return { val: seconds.toFixed(3), unit: 's', str: `${seconds.toFixed(3)} s` };
+      }
+    }
+
+    function getMusicalNote(freq) {
+      if (freq <= 10) return '--';
+      const noteNames = ["C", "D♭", "D", "E♭", "E", "F", "G♭", "G", "A♭", "A", "B♭", "B"];
+      const subscriptNums = ["₀", "₁", "₂", "₃", "₄", "₅", "₆", "₇", "₈", "₉"];
+      const midiNumber = Math.round(69 + 12 * Math.log2(freq / 440));
+      const noteIdx = (midiNumber % 12 + 12) % 12;
+      const octave = Math.floor(midiNumber / 12) - 1;
+      const octSub = (octave >= 0 && octave <= 9) ? subscriptNums[octave] : `${octave}`;
+      return `${noteNames[noteIdx]}${octSub}`;
+    }
+
+    function computeFourierQuality(type, N, A) {
+      // Gibbs describes overshoot near a DISCONTINUITY, not the accuracy
+      // of approximating a continuous waveform. AC/DC offset cancels out.
+      if (type === 'triangle') {
+        return { pct: 0, deltaV: 0, explanation:
+          'La onda triangular es continua y no presenta sobreimpulso de Gibbs. El error de truncamiento es otro indicador distinto.' };
+      }
+      if (type === 'sine') {
+        return { pct: null, deltaV: null, explanation:
+          'La senoide no tiene discontinuidades; Gibbs no aplica. Su serie de Fourier usa solo el primer armónico.' };
+      }
+      let normalizedPeak = 0;
+      if (type === 'square') {
+        // For N odd harmonics, first maximum occurs at theta = pi / (2N).
+        const theta = Math.PI / (2 * N);
+        for (let k = 1; k <= N; k++) {
+          const n = 2 * k - 1;
+          normalizedPeak += 4 * Math.sin(n * theta) / (Math.PI * n);
+        }
+      } else if (type === 'sawtooth') {
+        // The finite-N sawtooth maximum is NOT located exactly at pi/(N+1).
+        // Find its first crest numerically using precisely the same series
+        // that is rendered in Channel 2. Refine the peak by golden section.
+        const count = Math.max(1000, N * 70);
+        let bestTheta = 0;
+        for (let i = 0; i <= count; i++) {
+          const theta = Math.PI * i / count;
+          const y = calcFourierSN(theta, 1, 'sawtooth', N);
+          if (y > normalizedPeak) { normalizedPeak = y; bestTheta = theta; }
+        }
+        const halfStep = Math.PI / count;
+        let a = Math.max(0, bestTheta - halfStep), b = Math.min(Math.PI, bestTheta + halfStep);
+        for (let i = 0; i < 22; i++) {
+          const c = b - (b - a) * 0.6180339887498949;
+          const d = a + (b - a) * 0.6180339887498949;
+          if (calcFourierSN(c, 1, 'sawtooth', N) < calcFourierSN(d, 1, 'sawtooth', N)) a = c;
+          else b = d;
+        }
+        normalizedPeak = Math.max(normalizedPeak, calcFourierSN((a + b) / 2, 1, 'sawtooth', N));
+      }
+      const excess = Math.max(0, normalizedPeak - 1);
+      return {
+        pct: excess * 50, // normalize by the discontinuity height 2*A
+        deltaV: excess * A,
+        explanation: `Sobreimpulso de Gibbs calculado con N=${N}, relativo al salto de 2A. En AC y DC el porcentaje es igual: el offset no modifica Gibbs. Límite teórico: 8.9490 %.`
+      };
+    }
+
+    function calcFundamental(theta, A) { return A * Math.sin(theta); }
+
+    // Un osciloscopio en DC conserva el nivel continuo; en AC lo suprime.
+    function dcBias() { return state.coupling === 'DC' ? state.amplitude * state.dcBiasRatio : 0; }
+    const SECOND_TRACE_PHASE = Math.PI / 2; // Mismo f0, mismo A, 90° para distinguir ambas trazas.
+
+    function calcFourierSN(theta, A, type, N) {
+      let sum = 0;
+      if (type === 'sine') return A * Math.sin(theta);
+      if (type === 'square') {
+        for (let k = 1; k <= N; k++) {
+          const n = 2 * k - 1;
+          sum += (4 * A / (n * Math.PI)) * Math.sin(n * theta);
+        }
+        return sum;
+      }
+      if (type === 'sawtooth') {
+        for (let n = 1; n <= N; n++) {
+          sum += (2 * A / (n * Math.PI)) * Math.sin(n * theta);
+        }
+        return sum;
+      }
+      if (type === 'triangle') {
+        for (let k = 1; k <= N; k++) {
+          const n = 2 * k - 1;
+          sum -= (8 * A / (Math.PI * Math.PI * n * n)) * Math.cos(n * theta);
+        }
+        return sum;
+      }
+      return 0;
+    }
+
+    function calcIdeal(theta, A, type) {
+      const twoPi = 2 * Math.PI;
+      const u = ((theta % twoPi) + twoPi) % twoPi / twoPi;
+      if (type === 'sine') return A * Math.sin(theta);
+      if (type === 'square') return u < 0.5 ? A : -A;
+      if (type === 'sawtooth') return A * (1 - 2 * u);
+      if (type === 'triangle') return u < 0.5 ? A * (4 * u - 1) : A * (3 - 4 * u);
+      return 0;
+    }
+
+    // ===================================================================
+    // SECTOR 5: MOTOR GRÁFICO (DSO, DOBLE TRAZO Y ESPECTRO FLUIDO)       -->
+    // ===================================================================
+    let viewports = {};
+
+    function getChannelSample(channel, theta) {
+      const A = state.amplitude;
+      if (channel === 'ch1') {
+        return [calcFundamental(theta, A), state.ch1Wave2 ? calcFundamental(theta + SECOND_TRACE_PHASE, A) : null];
+      }
+      if (channel === 'ch2') {
+        return [calcFourierSN(theta, A, state.waveType, state.harmonicsN), state.ch2Wave2 ? calcIdeal(theta, A, state.waveType) : null];
+      }
+      return [calcIdeal(theta, A, state.waveType), state.ch3Wave2 ? calcIdeal(theta + SECOND_TRACE_PHASE, A, state.waveType) : null];
+    }
+
+    function updateViewports() {
+      const result = {};
+      const bias = dcBias();
+      for (const channel of ['ch1', 'ch2', 'ch3']) {
+        let smallest = 0, largest = 0;
+        let primaryLow = Infinity, primaryHigh = -Infinity;
+        // Muestra al menos un periodo completo para que el encuadre no salte al animar.
+        for (let i = 0; i <= 1400; i++) {
+          const theta = 2 * Math.PI * i / 1400;
+          const [primary, secondary] = getChannelSample(channel, theta);
+          primaryLow = Math.min(primaryLow, primary);
+          primaryHigh = Math.max(primaryHigh, primary);
+          smallest = Math.min(smallest, primary + bias);
+          largest = Math.max(largest, primary + bias);
+          if (secondary !== null) {
+            smallest = Math.min(smallest, secondary + bias);
+            largest = Math.max(largest, secondary + bias);
+          }
+        }
+        // Incluir cero V permite leer el offset incluso con señales unipolares.
+        const span = Math.max(largest - smallest, state.amplitude * .4, .1);
+        const padding = span * .13;
+        result[channel] = {
+          lower: smallest - padding,
+          upper: largest + padding,
+          span: span + padding * 2,
+          primaryVpp: primaryHigh - primaryLow
+        };
+      }
+      viewports = result;
+    }
+
+    function voltageY(voltage, channel, h) {
+      const v = viewports[channel];
+      if (!v) return h / 2;
+      return (v.upper - voltage) * h / v.span;
+    }
+
+    function drawOscilloscopeGrid(ctx, w, h, zeroY = h / 2) {
+      ctx.fillStyle = '#030509';
+      ctx.fillRect(0, 0, w, h);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(25, 36, 56, 0.55)';
+      const divX = state.divX, divY = state.divY;
+      for (let i = 0; i <= divX; i++) {
+        const x = (w / divX) * i;
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
+      }
+      for (let j = 0; j <= divY; j++) {
+        const y = (h / divY) * j;
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+      }
+      if (zeroY >= 2 && zeroY <= h - 2) {
+        ctx.strokeStyle = 'rgba(0, 242, 254, 0.36)';
+        ctx.beginPath(); ctx.moveTo(0, zeroY); ctx.lineTo(w, zeroY); ctx.stroke();
+        ctx.strokeStyle = 'rgba(0, 242, 254, 0.5)';
+        const subTicks = divX * 5, tickH = 2.5;
+        for (let k = 0; k <= subTicks; k++) {
+          const tx = (w / subTicks) * k;
+          ctx.beginPath(); ctx.moveTo(tx, zeroY - tickH); ctx.lineTo(tx, zeroY + tickH); ctx.stroke();
+        }
+      }
+    }
+
+    function drawInsideTimeMarkers(ctx, w, h) {
+      const T0 = 1 / state.f0;
+      const totalTimeSec = state.cyclesShown * T0;
+      const timeFmt = formatTimeValue(totalTimeSec);
+      const halfFmt = formatTimeValue(totalTimeSec / 2);
+
+      ctx.font = '10px monospace';
+      ctx.fillStyle = 'rgba(0, 242, 254, 0.8)';
+      ctx.textAlign = 'left'; ctx.fillText(`0 ${timeFmt.unit}`, 6, h - 6);
+      ctx.textAlign = 'center'; ctx.fillText(`${halfFmt.val} ${halfFmt.unit}`, w / 2, h - 6);
+      ctx.textAlign = 'right'; ctx.fillText(`${timeFmt.val} ${timeFmt.unit}`, w - 6, h - 6);
+    }
+
+    function renderWave(canvas, ctx, evalFunc, strokeColor, glowColor, secondWaveFunc = null, channel = 'ch1') {
+      if (!canvas || !ctx) return;
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      if (!w || !h) return;
+      const bias = dcBias();
+      const zeroY = voltageY(0, channel, h);
+      drawOscilloscopeGrid(ctx, w, h, zeroY);
+      const totalRad = state.cyclesShown * 2 * Math.PI;
+      const pointsY = new Float32Array(Math.ceil(w));
+      for (let px = 0; px < pointsY.length; px++) {
+        const theta = (px / w) * totalRad - state.phaseOffset;
+        pointsY[px] = voltageY(evalFunc(theta, state.amplitude) + bias, channel, h);
+      }
+      function tracePath() {
+        ctx.beginPath();
+        for (let px = 0; px < pointsY.length; px++) {
+          if (px === 0) ctx.moveTo(px, pointsY[px]); else ctx.lineTo(px, pointsY[px]);
+        }
+      }
+      tracePath(); ctx.lineWidth = 4.5; ctx.strokeStyle = glowColor; ctx.stroke();
+      tracePath(); ctx.lineWidth = 1.9; ctx.strokeStyle = strokeColor; ctx.stroke();
+      tracePath(); ctx.lineWidth = 0.7; ctx.strokeStyle = 'rgba(255,255,255,.45)'; ctx.stroke();
+      // Comparación secundaria siempre visible ENCIMA de la principal.
+      // Discontinua ámbar para distinguirla incluso en las esquinas triangulares.
+      if (secondWaveFunc) {
+        ctx.save();
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#ffca62';
+        ctx.setLineDash([7, 5]);
+        ctx.beginPath();
+        for (let px = 0; px < w; px++) {
+          const theta = (px / w) * totalRad - state.phaseOffset;
+          const y = voltageY(secondWaveFunc(theta, state.amplitude) + bias, channel, h);
+          if (px === 0) ctx.moveTo(px, y); else ctx.lineTo(px, y);
+        }
+        ctx.stroke();
+        ctx.restore();
+      }
+      drawInsideTimeMarkers(ctx, w, h);
+    }
+
+    function renderChannel2GeoGebra(canvas, ctx) {
+      if (!canvas || !ctx) return;
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      if (!w || !h) return;
+      const bias = dcBias();
+      const zeroY = voltageY(0, 'ch2', h);
+      drawOscilloscopeGrid(ctx, w, h, zeroY);
+      const totalRad = state.cyclesShown * 2 * Math.PI;
+
+      // Traza comparativa: forma periódica ideal, a la misma amplitud y frecuencia.
+      if (state.ch2Wave2) {
+        ctx.lineWidth = 1.8;
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.40)';
+        ctx.beginPath();
+        for (let px = 0; px < w; px++) {
+          const theta = (px / w) * totalRad - state.phaseOffset;
+          const y = voltageY(calcIdeal(theta, state.amplitude, state.waveType) + bias, 'ch2', h);
+          if (!px) ctx.moveTo(px, y); else ctx.lineTo(px, y);
+        }
+        ctx.stroke();
+      }
+
+      const pointsY = new Float32Array(Math.ceil(w));
+      for (let px = 0; px < pointsY.length; px++) {
+        const theta = (px / w) * totalRad - state.phaseOffset;
+        pointsY[px] = voltageY(calcFourierSN(theta, state.amplitude, state.waveType, state.harmonicsN) + bias, 'ch2', h);
+      }
+      function traceFourier() {
+        ctx.beginPath();
+        for (let px = 0; px < pointsY.length; px++) {
+          if (!px) ctx.moveTo(px, pointsY[px]); else ctx.lineTo(px, pointsY[px]);
+        }
+      }
+      traceFourier(); ctx.lineWidth = 4.5; ctx.strokeStyle = 'rgba(0,242,254,.28)'; ctx.stroke();
+      traceFourier(); ctx.lineWidth = 1.9; ctx.strokeStyle = '#00f2fe'; ctx.stroke();
+      traceFourier(); ctx.lineWidth = 0.7; ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.stroke();
+
+      // Graduaciones de fase sobre la referencia 0 V, sin recortes en DC.
+      ctx.font = 'italic 10px Cambria Math, serif';
+      ctx.fillStyle = 'rgba(0,242,254,.6)';
+      ctx.textAlign = 'center';
+      const startPi = Math.ceil((-state.phaseOffset) / Math.PI);
+      const endPi = Math.floor((totalRad - state.phaseOffset) / Math.PI);
+      for (let k = startPi; k <= endPi; k++) {
+        const xPos = ((k * Math.PI + state.phaseOffset) / totalRad) * w;
+        if (xPos >= 15 && xPos <= w - 15 && zeroY >= 0 && zeroY <= h) {
+          ctx.strokeStyle = 'rgba(0,242,254,.5)';
+          ctx.beginPath(); ctx.moveTo(xPos, zeroY - 4); ctx.lineTo(xPos, zeroY + 4); ctx.stroke();
+          const label = k === 0 ? '0' : k === 1 ? 'π' : k === -1 ? '-π' : `${k}π`;
+          ctx.fillText(label, xPos, Math.min(h - 17, Math.max(13, zeroY + 13)));
+        }
+      }
+      drawInsideTimeMarkers(ctx, w, h);
+    }
+
+    let currentActivePicos = [];
+
+    // CANAL 4: RTA Y CURSOR DE ALTA FLUIDEZ (60 FPS)
+    function renderAppRTA(canvas, ctx) {
+      if (!canvas || !ctx) return;
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      const marginLeft = 38, marginBottom = 20;
+      const plotW = w - marginLeft, plotH = h - marginBottom;
+
+      ctx.fillStyle = '#060a12';
+      ctx.fillRect(0, 0, w, h);
+
+      function freqToX(freq) {
+        const clamped = Math.max(minLogFreq, Math.min(maxLogFreq, freq));
+        const lMin = Math.log10(minLogFreq), lMax = Math.log10(maxLogFreq);
+        return marginLeft + ((Math.log10(clamped) - lMin) / (lMax - lMin)) * plotW;
+      }
+
+      function dbToY(db) {
+        const clamped = Math.max(-100, Math.min(0, db));
+        return ((0 - clamped) / 100) * plotH;
+      }
+
+      // Marcas dB
+      const dbMarks = [0, -20, -40, -60, -80, -100];
+      ctx.lineWidth = 1; ctx.textAlign = 'right'; ctx.font = '10px monospace';
+      dbMarks.forEach(db => {
+        const y = dbToY(db);
+        ctx.strokeStyle = db === -100 ? 'rgba(40, 60, 90, 0.8)' : 'rgba(28, 42, 66, 0.45)';
+        ctx.beginPath(); ctx.moveTo(marginLeft, y); ctx.lineTo(w, y); ctx.stroke();
+        ctx.fillStyle = '#6b7d96'; ctx.fillText(`${db}`, marginLeft - 6, Math.max(12, Math.min(plotH - 2, y + 3)));
+      });
+
+      // Marcas Hz
+      logFreqTicks.forEach(tick => {
+        const x = freqToX(tick.f);
+        ctx.strokeStyle = 'rgba(28, 42, 66, 0.45)';
+        ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, plotH); ctx.stroke();
+        ctx.fillStyle = '#8295ad'; ctx.textAlign = 'center'; ctx.font = '9px monospace';
+        ctx.fillText(tick.label, x, h - 6);
+      });
+
+      // Cálculo Armónicos
+      const maxHarmonics = 24;
+      currentActivePicos = [];
+      // Calibración relativa: 10 V pico equivale a -24.1 dB en este simulador.
+      // Cada multiplicación por 10 en A incrementa 20 dB el nivel espectral.
+      const baseDB = -24.1 + 20 * Math.log10(state.amplitude / 10);
+
+      for (let n = 1; n <= maxHarmonics; n++) {
+        let relAmp = 0;
+        if (state.waveType === 'sine') {
+          relAmp = (n === 1) ? 1.0 : 0;
+        } else if (state.waveType === 'square') {
+          if (n % 2 !== 0 && n <= 2 * state.harmonicsN - 1) relAmp = 1 / n;
+        } else if (state.waveType === 'sawtooth') {
+          if (n <= state.harmonicsN) relAmp = 1 / n;
+        } else if (state.waveType === 'triangle') {
+          if (n % 2 !== 0 && n <= 2 * state.harmonicsN - 1) relAmp = 1 / (n * n);
+        }
+
+        if (relAmp > 0) {
+          const fn = n * state.f0;
+          // Evita amontonar armónicos fuera de la ventana logarítmica 20 Hz–20 kHz.
+          if (fn < minLogFreq || fn > maxLogFreq) continue;
+          const liveFlutter = state.isPlayingMotion ? (Math.sin(state.phaseOffset * 3.0 + n * 1.5) * 1.1) : 0;
+          const dbVal = baseDB + 20 * Math.log10(relAmp) + liveFlutter;
+          currentActivePicos.push({ n, f: fn, db: dbVal, x: freqToX(fn), y: dbToY(dbVal), note: getMusicalNote(fn) });
+        }
+      }
+
+      // Envolvente de Ruido Continuo y Faldas Espectrales
+      const numPoints = 120;
+      ctx.beginPath(); ctx.moveTo(marginLeft, plotH);
+      for (let i = 0; i <= numPoints; i++) {
+        const fraction = i / numPoints;
+        const currentFreq = Math.pow(10, Math.log10(minLogFreq) + fraction * (Math.log10(maxLogFreq) - Math.log10(minLogFreq)));
+        const px = marginLeft + fraction * plotW;
+
+        const noisePhase = state.isPlayingMotion ? state.phaseOffset : 0;
+        let noiseDB = -86 + Math.sin(currentFreq * 0.05 + noisePhase * 4.0) * 1.8;
+        if (currentFreq > 150 && currentFreq < 600) noiseDB += 12 * Math.exp(-Math.pow((currentFreq - 350) / 180, 2));
+
+        let peakEnergy = 0;
+        for (let j = 0; j < currentActivePicos.length; j++) {
+          const p = currentActivePicos[j];
+          const deltaF = Math.abs(currentFreq - p.f);
+          const skirtW = p.f * 0.085;
+          peakEnergy += Math.pow(10, p.db / 20) / (1 + Math.pow(deltaF / skirtW, 2));
+        }
+
+        const totalDB = Math.max(noiseDB, 20 * Math.log10(peakEnergy + 1e-5));
+        ctx.lineTo(px, Math.min(plotH, Math.max(2, dbToY(totalDB))));
+      }
+      ctx.lineTo(w, plotH); ctx.closePath();
+
+      ctx.fillStyle = 'rgba(70, 95, 125, 0.25)'; ctx.fill();
+      ctx.strokeStyle = 'rgba(180, 205, 235, 0.55)'; ctx.lineWidth = 1.2; ctx.stroke();
+
+      // Agujas y notas; se omiten etiquetas solapadas pero no se ocultan picos.
+      const labelAnchors = [];
+      currentActivePicos.forEach(p => {
+        ctx.strokeStyle = (p.n === 1) ? '#00ff88' : '#c8d8ec';
+        ctx.lineWidth = 1.8;
+        ctx.beginPath(); ctx.moveTo(p.x, plotH); ctx.lineTo(p.x, p.y); ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath(); ctx.arc(p.x, p.y, 2.5, 0, 2 * Math.PI); ctx.fill();
+
+        ctx.font = 'bold 11px sans-serif';
+        ctx.fillStyle = (p.n === 1) ? '#00ff88' : '#8cd9ff';
+        ctx.textAlign = 'center';
+        const nameY = Math.max(12, p.y - 8);
+        const noteW = Math.max(17, ctx.measureText(p.note).width + 5);
+        const labelX = Math.max(marginLeft + noteW / 2, Math.min(w - noteW / 2 - 3, p.x));
+        const collides = labelAnchors.some(q => Math.abs(q.x - labelX) < (q.width + noteW) / 2 + 3 && Math.abs(q.y - nameY) < 15);
+        if (!collides || p.n === state.selectedHarmonicIndex) {
+          ctx.fillText(p.note, labelX, nameY);
+          labelAnchors.push({x: labelX, y: nameY, width: noteW});
+        }
+      });
+
+      // Cursor Naranja Interactivo Móvil
+      let selectedPeak = currentActivePicos.find(p => p.n === state.selectedHarmonicIndex);
+      if (!selectedPeak && currentActivePicos.length > 0) selectedPeak = currentActivePicos[0];
+
+      if (selectedPeak) {
+        lblCursorNote.textContent = `${selectedPeak.note} (${selectedPeak.f} Hz)`;
+        ctx.strokeStyle = '#ff9900'; ctx.lineWidth = 1.8;
+        ctx.beginPath(); ctx.moveTo(selectedPeak.x, 0); ctx.lineTo(selectedPeak.x, plotH); ctx.stroke();
+
+        const boxW = 90, boxH = 34;
+        const boxX = Math.min(w - boxW - 8, Math.max(marginLeft + 4, selectedPeak.x - boxW / 2));
+        const boxY = Math.min(plotH - boxH - 6, selectedPeak.y + 20);
+
+        ctx.fillStyle = '#e67300';
+        ctx.beginPath(); ctx.roundRect(boxX, boxY, boxW, boxH, 4); ctx.fill();
+
+        ctx.fillStyle = '#ffffff'; ctx.font = 'bold 11px monospace'; ctx.textAlign = 'center';
+        ctx.fillText(`${selectedPeak.db.toFixed(1)} dB`, boxX + boxW / 2, boxY + 14);
+        ctx.font = '10px monospace';
+        ctx.fillText(`${selectedPeak.f} Hz • ${selectedPeak.note}`, boxX + boxW / 2, boxY + 27);
+      }
+    }
+
+    // Con el equipo apagado o encendido en espera, se dibuja únicamente la retícula:
+    // sin señales senoidales, sin armónicos FFT y sin traza sonora.
+    function isSignalReady() { return state.powerOn && state.waveSelected; }
+
+    function renderIdleScreen(canvas, ctx, status, isFFT = false) {
+      if (!canvas || !ctx) return;
+      const w = canvas.clientWidth, h = canvas.clientHeight;
+      if (!w || !h) return;
+      if (isFFT) {
+        ctx.fillStyle = '#060a12';
+        ctx.fillRect(0, 0, w, h);
+        ctx.strokeStyle = 'rgba(31, 48, 72, .55)';
+        ctx.lineWidth = 1;
+        for (let i = 1; i < 6; i++) {
+          const y = i * h / 6;
+          ctx.beginPath(); ctx.moveTo(38, y); ctx.lineTo(w, y); ctx.stroke();
+        }
+      } else {
+        drawOscilloscopeGrid(ctx, w, h);
+      }
+      ctx.save();
+      ctx.font = '600 12px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(150, 174, 199, .84)';
+      ctx.fillText(status, w / 2, h / 2 - 8);
+      ctx.font = '10px system-ui, sans-serif';
+      ctx.fillStyle = 'rgba(114, 139, 167, .76)';
+      ctx.fillText(state.powerOn ? 'Selecciona una forma de onda' : 'Pulsa el interruptor ON', w / 2, h / 2 + 10);
+      ctx.restore();
+    }
+
+    // Bucle Continuo a 60 FPS
+    let lastTime = performance.now();
+    function loop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
+      lastTime = now;
+
+      if (!isSignalReady()) {
+        const label = state.powerOn ? 'EN ESPERA · SIN SEÑAL' : 'EQUIPO APAGADO';
+        renderIdleScreen(cvF1, ctxF1, label);
+        renderIdleScreen(cvSN, ctxSN, label);
+        renderIdleScreen(cvIdeal, ctxIdeal, label);
+        renderIdleScreen(cvFFT, ctxFFT, label, true);
+        currentActivePicos = [];
+        requestAnimationFrame(loop);
+        return;
+      }
+
+      if (state.isPlayingMotion) {
+        state.phaseOffset = (state.phaseOffset + dt * (0.6 * 2 * Math.PI)) % (2 * Math.PI);
+      }
+
+      // Canal 1: segunda señal senoidal de igual amplitud y frecuencia, desfasada 90°.
+      renderWave(cvF1, ctxF1,
+        (th, A) => calcFundamental(th, A), '#00ff88', 'rgba(0, 255, 136, 0.3)',
+        state.ch1Wave2 ? ((th, A) => calcFundamental(th + SECOND_TRACE_PHASE, A)) : null,
+        'ch1'
+      );
+
+      // Canal 2: Suma de Fourier + Onda Ideal
+      renderChannel2GeoGebra(cvSN, ctxSN);
+
+      // Canal 3: la segunda señal replica la forma seleccionada, no una senoide fija.
+      renderWave(cvIdeal, ctxIdeal,
+        (th, A) => calcIdeal(th, A, state.waveType), '#ff0077', 'rgba(255, 0, 119, 0.3)',
+        state.ch3Wave2 ? ((th, A) => calcIdeal(th + SECOND_TRACE_PHASE, A, state.waveType)) : null,
+        'ch3'
+      );
+
+      // Canal 4: FFT original intacta y, opcionalmente, espectrograma adicional.
+      renderAppRTA(cvFFT, ctxFFT);
+      if (state.specVisible) renderSpectrogramFrame(dt);
+
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+
+    // ===================================================================
+    // ESPECTROGRAMA CANAL 4 (OPCIONAL) - SIMULADOR O MICROFONO EN VIVO
+    // El analizador FFT previo se sigue renderizando sin modificaciones.
+    // ===================================================================
+    const specMargins = { left: 49, right: 72, top: 14, bottom: 24 };
+    let ctxSpec = null, historyCanvas = null, historyCtx = null;
+    let scratchCanvas = null, scratchCtx = null, specWidth = 0, specHeight = 0;
+    let specAcc = 0, specElapsed = 0;
+    let micStream = null, micContext = null, micAnalyzer = null, micData = null;
+
+    function clamp01(t) { return Math.max(0, Math.min(1, t)); }
+    function colorForDB(db) {
+      // Paleta violeta, magenta, rosa y amarillo como en la referencia móvil.
+      const t = clamp01((db - state.specMinDB) / (-10 - state.specMinDB));
+      const stops = [
+        [18, 1, 37], [71, 0, 100], [132, 13, 150],
+        [209, 29, 191], [252, 80, 217], [255, 167, 223], [255, 225, 125]
+      ];
+      const p = t * (stops.length - 1), k = Math.min(stops.length - 2, Math.floor(p));
+      const f = p - k;
+      const r = Math.round(stops[k][0] + (stops[k + 1][0] - stops[k][0]) * f);
+      const g = Math.round(stops[k][1] + (stops[k + 1][1] - stops[k][1]) * f);
+      const b = Math.round(stops[k][2] + (stops[k + 1][2] - stops[k][2]) * f);
+      return `rgb(${r},${g},${b})`;
+    }
+
+    function reinitSpectrogram() {
+      if (specPanel.hidden) return;
+      ctxSpec = initCanvas(cvSpec);
+      const w = Math.floor(cvSpec.clientWidth), h = Math.floor(cvSpec.clientHeight);
+      if (w < 120 || h < 80) return;
+      specWidth = Math.max(20, w - specMargins.left - specMargins.right);
+      specHeight = Math.max(20, h - specMargins.top - specMargins.bottom);
+      historyCanvas = document.createElement('canvas');
+      historyCanvas.width = specWidth;
+      historyCanvas.height = specHeight;
+      historyCtx = historyCanvas.getContext('2d');
+      scratchCanvas = document.createElement('canvas');
+      scratchCanvas.width = specWidth;
+      scratchCanvas.height = specHeight;
+      scratchCtx = scratchCanvas.getContext('2d');
+      // Precargar un historial simulado para evitar un panel vacío al abrirlo.
+      if (state.specSource === 'sim' && isSignalReady() && state.specRunning) {
+        for (let x = 0; x < specWidth; x += 3) {
+          fillSpectrogramStrip(historyCtx, x, Math.min(3, specWidth - x), -((specWidth - x) / state.specSpeed));
+        }
+      } else {
+        historyCtx.fillStyle = colorForDB(state.specMinDB);
+        historyCtx.fillRect(0, 0, specWidth, specHeight);
+      }
+      specAcc = 0;
+      drawSpectrogramCanvas();
+    }
+
+    function spectrumDBAt(f, timeSec) {
+      if (state.specSource === 'mic' && micAnalyzer && micData) {
+        const sampleRate = micContext.sampleRate;
+        const bin = f * micAnalyzer.fftSize / sampleRate;
+        const i = Math.floor(bin);
+        if (i < 0 || i >= micData.length - 1) return state.specMinDB;
+        const weight = bin - i;
+        return micData[i] * (1 - weight) + micData[i + 1] * weight;
+      }
+      // El simulador genera una representación ESPECTRAL de la forma escogida,
+      // no finge captar sonido real: dBFS estimados a partir de sus armónicos.
+      const logF = Math.log(Math.max(20, f));
+      let db = -127 + 5 * Math.sin(logF * 3.7 + timeSec * .9)
+                + 3 * Math.sin(logF * 9.5 - timeSec * .55);
+      if (f < 270) db += 13 * Math.exp(-f / 170);
+      for (const p of currentActivePicos) {
+        if (p.f < 20 || p.f > state.specMaxFreq) continue;
+        const d = Math.log(f / p.f);
+        const band = p.db - 15.5 * Math.pow(d / .065, 2)
+                     + 2.0 * Math.sin(timeSec * 2.2 + p.n * 1.7);
+        db = Math.max(db, band);
+      }
+      return db;
+    }
+
+    function fillSpectrogramStrip(target, x, width, timeSec) {
+      if (!specHeight || !specWidth) return;
+      const freqRatio = state.specMaxFreq / 20;
+      if (state.specSource === 'mic' && micAnalyzer && micData) micAnalyzer.getFloatFrequencyData(micData);
+      for (let y = 0; y < specHeight; y++) {
+        const f = state.specMaxFreq / Math.pow(freqRatio, y / Math.max(1, specHeight - 1));
+        target.fillStyle = colorForDB(spectrumDBAt(f, timeSec));
+        target.fillRect(x, y, width, 1);
+      }
+    }
+
+    function stepSpectrogram(dx) {
+      dx = Math.min(specWidth, Math.max(1, dx));
+      scratchCtx.fillStyle = colorForDB(state.specMinDB);
+      scratchCtx.fillRect(0, 0, specWidth, specHeight);
+      scratchCtx.drawImage(historyCanvas, -dx, 0);
+      fillSpectrogramStrip(scratchCtx, specWidth - dx, dx, specElapsed);
+      [historyCanvas, scratchCanvas] = [scratchCanvas, historyCanvas];
+      [historyCtx, scratchCtx] = [scratchCtx, historyCtx];
+    }
+
+    function drawSpectrogramCanvas() {
+      if (!ctxSpec || !historyCanvas || specPanel.hidden) return;
+      const w = cvSpec.clientWidth, h = cvSpec.clientHeight;
+      const {left, top, right, bottom} = specMargins;
+      const x2 = left + specWidth;
+      const signalReady = isSignalReady();
+      ctxSpec.fillStyle = signalReady ? '#12051e' : '#030509';
+      ctxSpec.fillRect(0, 0, w, h);
+      if (signalReady) {
+        ctxSpec.drawImage(historyCanvas, left, top, specWidth, specHeight);
+      } else {
+        // Dark oscilloscope-style reticle for OFF and ON/standby: no fake spectral data.
+        ctxSpec.fillStyle = '#060b14';
+        ctxSpec.fillRect(left, top, specWidth, specHeight);
+        ctxSpec.strokeStyle = 'rgba(33, 58, 90, 0.46)';
+        ctxSpec.lineWidth = 1;
+        for (let i = 0; i <= 10; i++) {
+          const x = left + specWidth * i / 10;
+          ctxSpec.beginPath(); ctxSpec.moveTo(x, top); ctxSpec.lineTo(x, top + specHeight); ctxSpec.stroke();
+        }
+        const midY = top + specHeight / 2;
+        ctxSpec.strokeStyle = 'rgba(0, 242, 254, 0.32)';
+        ctxSpec.beginPath(); ctxSpec.moveTo(left, midY); ctxSpec.lineTo(left + specWidth, midY); ctxSpec.stroke();
+      }
+
+      // Rejilla de frecuencias logarítmica como en la app del celular.
+      const ticks = [20000, 10000, 5000, 2000, 1000, 500, 200, 100, 50, 20];
+      ctxSpec.font = '10px monospace';
+      ctxSpec.textAlign = 'right';
+      for (const freq of ticks) {
+        if (freq > state.specMaxFreq) continue;
+        const frac = Math.log(state.specMaxFreq / freq) / Math.log(state.specMaxFreq / 20);
+        const y = top + frac * specHeight;
+        ctxSpec.strokeStyle = 'rgba(236,139,255,.16)';
+        ctxSpec.beginPath(); ctxSpec.moveTo(left, y); ctxSpec.lineTo(x2, y); ctxSpec.stroke();
+        ctxSpec.fillStyle = signalReady ? '#ead0ff' : '#8ddbef';
+        const label = freq >= 1000 ? (freq / 1000) + 'k' : `${freq}`;
+        ctxSpec.fillText(label, left - 8, Math.min(top + specHeight - 2, Math.max(top + 9, y + 3)));
+      }
+      ctxSpec.fillStyle = '#a6b1c8';
+      ctxSpec.textAlign = 'left';
+      ctxSpec.fillText('Hz', 5, 11);
+
+      // dBFS legend: a narrow color strip and high-contrast, separate number column.
+      const lgX = x2 + 8, lgW = 14;
+      for (let y = 0; y < specHeight; y++) {
+        const db = -10 + (state.specMinDB + 10) * y / Math.max(1, specHeight - 1);
+        ctxSpec.fillStyle = colorForDB(db);
+        ctxSpec.fillRect(lgX, top + y, lgW, 1);
+      }
+      ctxSpec.fillStyle = '#081422';
+      ctxSpec.fillRect(lgX + lgW + 3, top, Math.max(1, w - (lgX + lgW + 3)), specHeight);
+      ctxSpec.strokeStyle = 'rgba(225, 242, 255, .55)';
+      ctxSpec.strokeRect(lgX - .5, top - .5, lgW + 1, specHeight + 1);
+      ctxSpec.font = 'bold 10px monospace';
+      ctxSpec.textAlign = 'right';
+      ctxSpec.fillStyle = '#fff1a0';
+      ctxSpec.fillText('dBFS', w - 3, Math.max(10, top - 4));
+      for (const db of [-20, -40, -60, -80, -100, -120, -140, -160]) {
+        if (db < state.specMinDB) continue;
+        const yy = top + (-10 - db) / (-10 - state.specMinDB) * specHeight;
+        ctxSpec.fillText(String(db), w - 5, Math.min(top + specHeight - 3, Math.max(top + 10, yy + 3)));
+      }
+
+      if (!signalReady) {
+        const centerX = left + specWidth / 2;
+        const centerY = top + specHeight / 2;
+        ctxSpec.textAlign = 'center';
+        ctxSpec.font = '600 12px system-ui, sans-serif';
+        ctxSpec.fillStyle = '#a8c7e5';
+        ctxSpec.fillText(state.powerOn ? 'EN ESPERA · SIN SEÑAL' : 'EQUIPO APAGADO', centerX, centerY - 9);
+        ctxSpec.font = '10px system-ui, sans-serif';
+        ctxSpec.fillStyle = '#819ebc';
+        ctxSpec.fillText(state.powerOn ? 'Selecciona una forma de onda' : 'Pulsa el interruptor ON', centerX, centerY + 10);
+      }
+      ctxSpec.fillStyle = '#b8a0ca';
+      ctxSpec.textAlign = 'left';
+      ctxSpec.fillText(`−${(specWidth / state.specSpeed).toFixed(1)} s`, left + 2, h - 7);
+      ctxSpec.textAlign = 'right';
+      ctxSpec.fillText('Ahora', x2 - 2, h - 7);
+      specTimeWindow.textContent = `Historial: ${(specWidth / state.specSpeed).toFixed(1)} s`;
+    }
+
+    function renderSpectrogramFrame(dt) {
+      if (!historyCanvas) return;
+      if (state.specRunning && isSignalReady()) {
+        specElapsed += dt;
+        specAcc += dt * state.specSpeed;
+        const advance = Math.floor(specAcc);
+        if (advance >= 1) {
+          specAcc -= advance;
+          stepSpectrogram(advance);
+        }
+      }
+      drawSpectrogramCanvas();
+    }
+
+    function syncSpecButtons() {
+      btnSpecSim.classList.toggle('active', state.specSource === 'sim');
+      btnSpecMic.classList.toggle('active', state.specSource === 'mic');
+      btnSpecStart.textContent = !isSignalReady() ? 'En espera de señal' : state.specRunning ? '▮▮ Pausar RTA' : '▶ Iniciar RTA';
+      // Vista permanente: FFT arriba y espectrograma debajo; sin botón para ocultarlo.
+      state.specVisible = true;
+      specPanel.hidden = false;
+      document.querySelector('.main-workspace').classList.add('spec-expanded');
+    }
+
+    async function stopMicrophone() {
+      if (micStream) micStream.getTracks().forEach(track => track.stop());
+      micStream = null;
+      micAnalyzer = null;
+      micData = null;
+      if (micContext) { try { await micContext.close(); } catch (_e) {} }
+      micContext = null;
+    }
+
+    async function startMicrophone() {
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        specStatus.textContent = 'Micrófono no disponible: abre el HTML en HTTPS o localhost y usa navegador compatible.';
+        return false;
+      }
+      try {
+        await stopMicrophone();
+        const grantedStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
+          video: false
+        });
+        // Si se apagó el equipo mientras el navegador solicitaba permiso,
+        // cerrar la captura antes de iniciar el analizador.
+        if (!isSignalReady() || !state.specVisible || !state.specRunning || state.specSource !== 'mic') {
+          grantedStream.getTracks().forEach(track => track.stop());
+          return false;
+        }
+        micStream = grantedStream;
+        micContext = new (window.AudioContext || window.webkitAudioContext)();
+        const input = micContext.createMediaStreamSource(micStream);
+        micAnalyzer = micContext.createAnalyser();
+        micAnalyzer.fftSize = 8192;
+        micAnalyzer.smoothingTimeConstant = .75;
+        micAnalyzer.minDecibels = -160;
+        micAnalyzer.maxDecibels = 0;
+        input.connect(micAnalyzer); // No enviar al altavoz para evitar realimentación.
+        micData = new Float32Array(micAnalyzer.frequencyBinCount);
+        specStatus.textContent = 'Micrófono activo · análisis de audio ambiente (dBFS)';
+        return true;
+      } catch (err) {
+        await stopMicrophone();
+        specStatus.textContent = 'No se pudo acceder al micrófono. Se muestra la señal simulada.';
+        return false;
+      }
+    }
+
+    function showIdleSpectralDisplays() {
+      // FFT and the frequency/time display remain visible in OFF and ON standby.
+      // Turn off acquisition and microphone, not the display panel.
+      state.specVisible = true;
+      state.specRunning = false;
+      state.specSource = 'sim';
+      specPanel.hidden = false;
+      specElapsed = 0;
+      stopMicrophone();
+      specStatus.textContent = state.powerOn
+        ? 'Equipo encendido: selecciona una forma de onda'
+        : 'Equipo apagado: analizador listo, sin señal';
+      syncSpecButtons();
+      reinitSpectrogram();
+    }
+
+    btnSpecSim.addEventListener('click', () => {
+      state.specSource = 'sim';
+      stopMicrophone();
+      specStatus.textContent = 'Fuente: señal sintetizada del simulador';
+      syncSpecButtons();
+      reinitSpectrogram();
+    });
+    btnSpecMic.addEventListener('click', async () => {
+      state.specSource = 'mic';
+      syncSpecButtons();
+      if (state.specRunning) {
+        const accepted = await startMicrophone();
+        if (!accepted) state.specSource = 'sim';
+      } else {
+        specStatus.textContent = 'Micrófono seleccionado. Pulsa Iniciar RTA para solicitar acceso.';
+      }
+      syncSpecButtons();
+      reinitSpectrogram();
+    });
+    btnSpecStart.addEventListener('click', async () => {
+      if (!isSignalReady()) return;
+      state.specRunning = !state.specRunning;
+      if (!state.specRunning) {
+        await stopMicrophone();
+        specStatus.textContent = 'RTA en pausa';
+      } else if (state.specSource === 'mic') {
+        const accepted = await startMicrophone();
+        if (!accepted) state.specSource = 'sim';
+      } else {
+        specStatus.textContent = 'Fuente: señal sintetizada del simulador';
+      }
+      syncSpecButtons();
+    });
+    rngSpecFreq.addEventListener('input', () => {
+      state.specMaxFreq = Number(rngSpecFreq.value);
+      document.getElementById('disp-spec-freq').textContent = state.specMaxFreq >= 1000 ? `${state.specMaxFreq / 1000} kHz` : `${state.specMaxFreq} Hz`;
+      reinitSpectrogram();
+    });
+    rngSpecDB.addEventListener('input', () => {
+      state.specMinDB = Number(rngSpecDB.value);
+      document.getElementById('disp-spec-db').textContent = `−${Math.abs(state.specMinDB)} dB`;
+      reinitSpectrogram();
+    });
+    rngSpecSpeed.addEventListener('input', () => {
+      state.specSpeed = Number(rngSpecSpeed.value);
+      document.getElementById('disp-spec-speed').textContent = `${state.specSpeed} px/s`;
+      specTimeWindow.textContent = `Historial: ${(specWidth / state.specSpeed).toFixed(1)} s`;
+    });
+    window.addEventListener('resize', () => { if (state.specVisible) reinitSpectrogram(); });
+
+    // ===================================================================
+    // SECTOR 6: CONTROLADOR DE EVENTOS E INTERFAZ DE USUARIO (JS)
+    // ===================================================================
+    function updateHUD() {
+      syncPowerUI();
+      const T0_sec = 1 / state.f0;
+      const t0Fmt = formatTimeValue(T0_sec);
+      hudPeriodo.innerHTML = `<i>T</i><sub>0</sub> = ${t0Fmt.str}`;
+      hudCalib.innerHTML = `<i>f</i><sub>0</sub> = ${state.f0} Hz`;
+      hudMode.textContent = `MODO: ${state.coupling}`;
+      hudMode.classList.toggle('mode-dc', state.coupling === 'DC');
+      document.querySelector('.main-workspace').classList.toggle('dc-selected', state.coupling === 'DC');
+      btnCouplingAC.classList.toggle('active', state.coupling === 'AC');
+      btnCouplingDC.classList.toggle('active', state.coupling === 'DC');
+      btnCouplingAC.setAttribute('aria-pressed', String(state.coupling === 'AC'));
+      btnCouplingDC.setAttribute('aria-pressed', String(state.coupling === 'DC'));
+      dcOffsetControls.hidden = state.coupling !== 'DC';
+      couplingNote.textContent = state.coupling === 'AC'
+        ? 'AC elimina la componente continua y centra la señal en 0 V.'
+        : 'DC conserva la componente continua. El encuadre muestra señal y referencia 0 V.';
+      dispDCOffset.textContent = `+${dcBias().toFixed(1)} V`;
+      updateViewports();
+
+      const names = {
+        square: 'Cuadrada',
+        sawtooth: 'Diente de Sierra',
+        triangle: 'Triangular',
+        sine: 'Senoidal'
+      };
+      lblCh3Name.textContent = isSignalReady() ? names[state.waveType] : 'Sin seleccionar';
+
+      const totalTimeSec = state.cyclesShown * T0_sec;
+      const timePerDivSec = totalTimeSec / state.divX;
+      const timeDivFmt = formatTimeValue(timePerDivSec);
+
+      const voltsPerDiv1 = (viewports.ch1.span / state.divY).toFixed(2);
+      const voltsPerDiv2 = (viewports.ch2.span / state.divY).toFixed(2);
+      const voltsPerDiv3 = (viewports.ch3.span / state.divY).toFixed(2);
+      const vppNominal1 = viewports.ch1.primaryVpp.toFixed(2);
+      const vppNominal3 = viewports.ch3.primaryVpp.toFixed(2);
+
+      const quality = computeFourierQuality(state.waveType, state.harmonicsN, state.amplitude);
+      lblGibbsTitle.textContent = 'Gibbs:';
+      // The triangle must say ONLY 0%; for sine there is no Gibbs metric.
+      if (state.waveType === 'triangle') lblGibbsPct.textContent = '0%';
+      else if (quality.pct === null) lblGibbsPct.textContent = 'No aplica';
+      else lblGibbsPct.textContent = `${quality.pct > 0 ? '+' : ''}${quality.pct.toFixed(4)}% · ${quality.deltaV.toFixed(2)} V`;
+      gibbsTelemetry.title = quality.explanation;
+      const vppFourier = viewports.ch2.primaryVpp.toFixed(2);
+
+      // Telemetría con formato Word V_pp y Ciclos sin "c"
+      ch1T0.textContent = t0Fmt.str;
+      ch1Tdiv.textContent = `${timeDivFmt.val} ${timeDivFmt.unit}/div`;
+      ch1Vdiv.textContent = `${voltsPerDiv1} V/div`;
+      ch1Vpp.textContent = `${vppNominal1} V`;
+      ch1Cycles.textContent = `${state.cyclesShown.toFixed(2)}`;
+
+      ch2T0.textContent = t0Fmt.str;
+      ch2Tdiv.textContent = `${timeDivFmt.val} ${timeDivFmt.unit}/div`;
+      ch2Vdiv.textContent = `${voltsPerDiv2} V/div`;
+      ch2Vpp.textContent = `${vppFourier} V`;
+      ch2Cycles.textContent = `${state.cyclesShown.toFixed(2)}`;
+
+      ch3T0.textContent = t0Fmt.str;
+      ch3Tdiv.textContent = `${timeDivFmt.val} ${timeDivFmt.unit}/div`;
+      ch3Vdiv.textContent = `${voltsPerDiv3} V/div`;
+      ch3Vpp.textContent = `${vppNominal3} V`;
+      ch3Cycles.textContent = `${state.cyclesShown.toFixed(2)}`;
+
+      if (state.waveType === 'square') {
+        dispMathSN.innerHTML = `<i>S</i><sub><i>N</i></sub>(<i>t</i>) = &sum;<sub><i>k</i>=1</sub><sup>${state.harmonicsN}</sup> <sup>4<i>A</i></sup>&frasl;<sub>(2<i>k</i>&minus;1)&pi;</sub> sen((2<i>k</i>&minus;1)&omega;<sub>0</sub><i>t</i>)`;
+      } else if (state.waveType === 'sawtooth') {
+        dispMathSN.innerHTML = `<i>S</i><sub><i>N</i></sub>(<i>t</i>) = &sum;<sub><i>n</i>=1</sub><sup>${state.harmonicsN}</sup> <sup>2<i>A</i></sup>&frasl;<sub><i>n</i>&pi;</sub> sen(<i>n</i>&omega;<sub>0</sub><i>t</i>)`;
+      } else if (state.waveType === 'triangle') {
+        dispMathSN.innerHTML = `<i>S</i><sub><i>N</i></sub>(<i>t</i>) = &minus; &sum;<sub><i>k</i>=1</sub><sup>${state.harmonicsN}</sup> <sup>8<i>A</i></sup>&frasl;<sub>&pi;<sup>2</sup>(2<i>k</i>&minus;1)<sup>2</sup></sub> cos((2<i>k</i>&minus;1)&omega;<sub>0</sub><i>t</i>)`;
+      } else if (state.waveType === 'sine') {
+        dispMathSN.innerHTML = `<i>S</i>(<i>t</i>) = <i>A</i> sen(&omega;<sub>0</sub><i>t</i>)`;
+      }
+
+      if (state.coupling === 'DC' && dcBias() > 0) dispMathSN.innerHTML += ' + <i>V</i><sub>DC</sub>';
+      if (!isSignalReady()) {
+        dispMathSN.innerHTML = '<i>S</i><sub><i>N</i></sub>(<i>t</i>) · En espera';
+        lblGibbsPct.textContent = '—';
+        lblCursorNote.textContent = '—';
+        ch1Vpp.textContent = '—';
+        ch2Vpp.textContent = '—';
+        ch3Vpp.textContent = '—';
+      }
+      if (state.isPlayingAudio && isSignalReady()) updateAudioEngine();
+    }
+
+    function syncMotionButtons() {
+      btnPlayPause.classList.toggle('active-play', isSignalReady() && state.isPlayingMotion);
+      btnPlayPause.classList.toggle('active-pause', !isSignalReady() || !state.isPlayingMotion);
+      txtPlayPause.textContent = isSignalReady() && state.isPlayingMotion ? 'Pausa' : 'Play';
+      svgPlayPause.innerHTML = isSignalReady() && state.isPlayingMotion
+        ? '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'
+        : '<polygon points="5,3 19,12 5,21"/>';
+    }
+
+    function syncPowerUI() {
+      const ready = isSignalReady();
+      btnPower.classList.toggle('is-on', state.powerOn);
+      btnPower.setAttribute('aria-pressed', String(state.powerOn));
+      txtPower.textContent = state.powerOn ? 'EQUIPO ENCENDIDO' : 'EQUIPO APAGADO';
+      powerChip.textContent = state.powerOn ? 'ON' : 'OFF';
+      hudPower.textContent = !state.powerOn ? 'EQUIPO: OFF' : ready ? 'EQUIPO: ON · SEÑAL' : 'EQUIPO: ON · EN ESPERA';
+      hudPower.classList.toggle('is-on', ready);
+      hudPower.classList.toggle('is-standby', state.powerOn && !ready);
+      const names = {square: 'Cuadrada', sawtooth: 'Diente de Sierra', triangle: 'Triangular', sine: 'Senoidal'};
+      powerMessage.textContent = !state.powerOn
+        ? 'Presiona ON y después elige una forma de onda para comenzar.'
+        : !ready
+          ? 'Equipo encendido y en espera. Elige Cuadrada, Diente Sierra, Triangular o Senoidal.'
+          : `Señal ${names[state.waveType]} activa. Puedes usar Pausa, Stop y los demás controles.`;
+      waveButtons.forEach(b => { b.disabled = !state.powerOn; });
+      [btnPlayPause, btnStop, btnAudio, btnSpecSim, btnSpecMic, btnSpecStart, btnCh1W2, btnCh2W2, btnCh3W2].forEach(b => {
+        b.disabled = !ready;
+      });
+      syncMotionButtons();
+    }
+
+    function stopAudioEngine() {
+      if (oscNode) { try { oscNode.stop(); } catch (_) {} oscNode.disconnect(); }
+      if (masterGain) { try { masterGain.disconnect(); } catch (_) {} }
+      if (audioCtx) audioCtx.close().catch(() => {});
+      oscNode = null;
+      masterGain = null;
+      audioCtx = null;
+      state.isPlayingAudio = false;
+      btnAudio.classList.remove('playing');
+      txtAudio.textContent = 'Activar Tono Acústico';
+    }
+
+    btnPower.addEventListener('click', () => {
+      state.powerOn = !state.powerOn;
+      state.waveSelected = false; // Al encender siempre exige selección nueva.
+      state.isPlayingMotion = false;
+      state.phaseOffset = 0;
+      state.selectedHarmonicIndex = 1;
+      waveButtons.forEach(b => b.classList.remove('active'));
+      state.ch3Wave2 = false;
+      btnCh3W2.classList.remove('active');
+      btnCh3W2.setAttribute('aria-pressed', 'false');
+      showIdleSpectralDisplays();
+      stopAudioEngine();
+      updateHUD();
+    });
+
+    // Selector de acoplamiento y componente continua (no altera la frecuencia).
+    btnCouplingAC.addEventListener('click', () => { state.coupling = 'AC'; updateHUD(); });
+    btnCouplingDC.addEventListener('click', () => { state.coupling = 'DC'; updateHUD(); });
+    rngDCOffset.addEventListener('input', () => {
+      state.dcBiasRatio = Number(rngDCOffset.value) / 100;
+      updateHUD();
+    });
+
+    // Doble Onda en Canales 1 a 3
+    btnCh1W2.addEventListener('click', () => {
+      state.ch1Wave2 = !state.ch1Wave2;
+      btnCh1W2.classList.toggle('active', state.ch1Wave2);
+      btnCh1W2.setAttribute('aria-pressed', String(state.ch1Wave2));
+      updateHUD();
+    });
+
+    btnCh2W2.addEventListener('click', () => {
+      state.ch2Wave2 = !state.ch2Wave2;
+      btnCh2W2.classList.toggle('active', state.ch2Wave2);
+      updateHUD();
+    });
+
+    btnCh3W2.addEventListener('click', () => {
+      state.ch3Wave2 = !state.ch3Wave2;
+      btnCh3W2.classList.toggle('active', state.ch3Wave2);
+      btnCh3W2.setAttribute('aria-pressed', String(state.ch3Wave2));
+      updateHUD();
+    });
+
+    // Clic o Arrastre en Canal 4 para mover el cursor
+    function handleFFTInteraction(e) {
+      if (!isSignalReady() || currentActivePicos.length === 0) return;
+      const rect = cvFFT.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+
+      let closest = currentActivePicos[0];
+      let minDist = Math.abs(clickX - closest.x);
+      for (let i = 1; i < currentActivePicos.length; i++) {
+        const d = Math.abs(clickX - currentActivePicos[i].x);
+        if (d < minDist) { minDist = d; closest = currentActivePicos[i]; }
+      }
+      state.selectedHarmonicIndex = closest.n;
+    }
+
+    cvFFT.addEventListener('mousedown', handleFFTInteraction);
+    cvFFT.addEventListener('mousemove', (e) => { if (e.buttons === 1) handleFFTInteraction(e); });
+
+    // Deslizadores
+    rngFreq.addEventListener('input', (e) => { state.f0 = parseInt(e.target.value); dispFreq.textContent = `${state.f0} Hz`; updateHUD(); });
+    rngAmp.addEventListener('input', (e) => { state.amplitude = parseFloat(e.target.value); dispAmp.textContent = `${state.amplitude.toFixed(1)} V`; updateHUD(); });
+    rngDivX.addEventListener('input', (e) => { state.divX = parseInt(e.target.value); dispDivX.textContent = `${state.divX} div`; updateHUD(); });
+    rngDivY.addEventListener('input', (e) => { state.divY = parseInt(e.target.value); dispDivY.textContent = `${state.divY} div`; updateHUD(); });
+
+    rngN.addEventListener('input', (e) => {
+      state.harmonicsN = parseInt(e.target.value);
+      dispN.innerHTML = `<i>N</i> = ${state.harmonicsN}`;
+      presetButtons.forEach(b => b.classList.toggle('active', parseInt(b.dataset.preset) === state.harmonicsN));
+      updateHUD();
+    });
+
+    presetButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        presetButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.harmonicsN = parseInt(btn.dataset.preset);
+        rngN.value = state.harmonicsN;
+        dispN.innerHTML = `<i>N</i> = ${state.harmonicsN}`;
+        updateHUD();
+      });
+    });
+
+    btnFix750.addEventListener('click', () => { state.f0 = 750; rngFreq.value = 750; dispFreq.textContent = '750 Hz'; updateHUD(); });
+    btnFix100.addEventListener('click', () => { state.f0 = 100; rngFreq.value = 100; dispFreq.textContent = '100 Hz'; updateHUD(); });
+    btnFix1.addEventListener('click', () => { state.f0 = 1; rngFreq.value = 1; dispFreq.textContent = '1 Hz'; updateHUD(); });
+
+    waveButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!state.powerOn) return;
+        state.waveSelected = true;
+        state.isPlayingMotion = true;
+        state.phaseOffset = 0;
+        waveButtons.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        state.waveType = btn.dataset.type;
+        // Al seleccionar triangular activar la doble traza automáticamente.
+        // La comparación puede apagarse/encenderse después con su botón.
+        if (state.waveType === 'triangle') state.ch3Wave2 = true;
+        btnCh3W2.classList.toggle('active', state.ch3Wave2);
+        btnCh3W2.setAttribute('aria-pressed', String(state.ch3Wave2));
+        state.selectedHarmonicIndex = 1;
+        state.specRunning = state.specVisible;
+        if (state.specVisible && state.specSource === 'sim') {
+          specStatus.textContent = 'Fuente: señal sintetizada del simulador';
+        }
+        updateHUD();
+        syncSpecButtons();
+        if (state.specVisible) reinitSpectrogram();
+      });
+    });
+
+    btnPlayPause.addEventListener('click', () => {
+      if (!isSignalReady()) return;
+      state.isPlayingMotion = !state.isPlayingMotion;
+      btnPlayPause.classList.toggle('active-play', state.isPlayingMotion);
+      btnPlayPause.classList.toggle('active-pause', !state.isPlayingMotion);
+      txtPlayPause.textContent = state.isPlayingMotion ? 'Pausa' : 'Play';
+      svgPlayPause.innerHTML = state.isPlayingMotion
+        ? '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>'
+        : '<polygon points="5,3 19,12 5,21"/>';
+    });
+
+    btnStop.addEventListener('click', () => {
+      if (!isSignalReady()) return;
+      state.isPlayingMotion = false;
+      state.phaseOffset = 0;
+      btnPlayPause.classList.remove('active-play');
+      btnPlayPause.classList.add('active-pause');
+      txtPlayPause.textContent = 'Play';
+      svgPlayPause.innerHTML = '<polygon points="5,3 19,12 5,21"/>';
+    });
+
+    btnReset.addEventListener('click', () => {
+      state.waveType = 'square';
+      state.powerOn = false;
+      state.waveSelected = false;
+      stopAudioEngine();
+      state.f0 = 750;
+      state.amplitude = 10.0;
+      state.harmonicsN = 5;
+      state.divX = 10;
+      state.divY = 6;
+      state.selectedHarmonicIndex = 1;
+      state.isPlayingMotion = false;
+      state.phaseOffset = 0;
+      state.ch1Wave2 = false;
+      state.ch2Wave2 = true;
+      state.ch3Wave2 = false;
+      state.coupling = 'AC';
+      state.dcBiasRatio = 1;
+      rngDCOffset.value = 100;
+      showIdleSpectralDisplays();
+
+      btnCh1W2.classList.remove('active');
+      btnCh2W2.classList.add('active');
+      btnCh3W2.classList.remove('active');
+      btnCh1W2.setAttribute('aria-pressed', 'false');
+      btnCh3W2.setAttribute('aria-pressed', 'false');
+
+      rngFreq.value = 750; rngAmp.value = 10.0; rngN.value = 5; rngDivX.value = 10; rngDivY.value = 6;
+      dispFreq.textContent = '750 Hz'; dispAmp.textContent = '10.0 V'; dispDivX.textContent = '10 div'; dispDivY.textContent = '6 div'; dispN.innerHTML = '<i>N</i> = 5';
+
+      syncMotionButtons();
+
+      waveButtons.forEach(b => b.classList.remove('active'));
+      presetButtons.forEach(b => b.classList.toggle('active', b.dataset.preset === '5'));
+      updateHUD();
+    });
+
+    // ===================================================================
+    // SECTOR 7: MOTOR DE SÍNTESIS ACÚSTICA ADITIVA (WEB AUDIO API)
+    // ===================================================================
+    function updateAudioEngine() {
+      if (!audioCtx || !oscNode) return;
+      oscNode.frequency.setValueAtTime(state.f0, audioCtx.currentTime);
+      const safeVolume = Math.min(0.22, (state.amplitude / 20) * 0.16);
+      masterGain.gain.setValueAtTime(safeVolume, audioCtx.currentTime);
+
+      const maxArm = Math.max(128, 2 * state.harmonicsN + 2);
+      const real = new Float32Array(maxArm);
+      const imag = new Float32Array(maxArm);
+
+      if (state.waveType === 'sine') {
+        imag[1] = 1.0;
+      } else if (state.waveType === 'square') {
+        for (let k = 1; k <= state.harmonicsN; k++) {
+          const n = 2 * k - 1;
+          if (n < maxArm) imag[n] = 4 / (n * Math.PI);
+        }
+      } else if (state.waveType === 'sawtooth') {
+        for (let n = 1; n <= state.harmonicsN; n++) {
+          if (n < maxArm) imag[n] = 2 / (n * Math.PI);
+        }
+      } else if (state.waveType === 'triangle') {
+        for (let k = 1; k <= state.harmonicsN; k++) {
+          const n = 2 * k - 1;
+          if (n < maxArm) real[n] = -8 / (Math.PI * Math.PI * n * n);
+        }
+      }
+
+      const pWave = audioCtx.createPeriodicWave(real, imag, { disableNormalization: false });
+      oscNode.setPeriodicWave(pWave);
+    }
+
+    btnAudio.addEventListener('click', () => {
+      if (!isSignalReady()) return;
+      if (!state.isPlayingAudio) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        oscNode = audioCtx.createOscillator();
+        masterGain = audioCtx.createGain();
+        masterGain.connect(audioCtx.destination);
+        oscNode.connect(masterGain);
+        updateAudioEngine();
+        oscNode.start();
+        state.isPlayingAudio = true;
+        btnAudio.classList.add('playing');
+        txtAudio.textContent = 'Detener Tono Acústico';
+      } else {
+        stopAudioEngine();
+      }
+    });
+
+    updateHUD();
+    syncSpecButtons();
+    reinitSpectrogram();
+  </script>
+</body>
+</html>
