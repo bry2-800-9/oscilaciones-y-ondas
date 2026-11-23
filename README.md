@@ -1,1 +1,1 @@
- oscilaciones-y-ondas
+ oscilaciones-y-ondas (academia de física)
